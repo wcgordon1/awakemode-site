@@ -60,6 +60,18 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       <div id="awake-settings-drawer" class="awake-settings-drawer" data-open="false" aria-hidden="true">
         <div class="space-y-4 border-t border-base-700 pt-4">
           <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
+            <p class="text-xs uppercase tracking-wider text-base-400">Preferences</p>
+            <label class="mt-3 flex items-center justify-between gap-3 text-sm text-base-300">
+              <span>10-second beep alert</span>
+              <input
+                id="awake-beep-alert-toggle"
+                type="checkbox"
+                class="h-4 w-4 rounded border-base-600 bg-base-900 text-accent-400 focus:ring-accent-300"
+              />
+            </label>
+          </div>
+
+          <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
             <p class="text-xs uppercase tracking-wider text-base-400">Profiles</p>
             <div class="mt-3 space-y-4">
               <ProfileQuickLaunch />
@@ -81,12 +93,13 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 <script>
   import { detectWakeClientInfo } from "../../lib/clientInfo";
   import {
+    calculateTimerProgress,
     PRESET_MINUTES,
-    createWakeSessionEngine,
     formatDurationMs,
     normalizeCustomMinutes,
   } from "../../lib/wakeSession";
   import { MAX_PROFILES, createWakeProfileService } from "../../lib/wakeProfiles";
+  import { retainWakeSessionEngine } from "../../lib/wakeSessionRuntime";
   import { createWakeShortcutController } from "../../lib/wakeShortcuts";
   import { createWakeUiPreferenceService } from "../../lib/wakeUiPreferences";
 
@@ -95,6 +108,8 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
   const formatEventLabel = (eventType) => {
     const labels = {
       started: "Session started",
+      paused: "Session paused",
+      resumed: "Session resumed",
       stopped: "Session stopped",
       acquired: "Wake lock acquired",
       released: "Wake lock released",
@@ -118,6 +133,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const statusBadge = panel.querySelector("#awake-status-badge");
     const statusDetail = panel.querySelector("#awake-status-detail");
     const timerRemaining = panel.querySelector("#awake-timer-remaining");
+    const timerVisual = panel.querySelector("#awake-timer-visual");
+    const timerProgressBar = panel.querySelector("#awake-timer-progress-bar");
+    const timerCountdown = panel.querySelector("#awake-timer-countdown");
     const timerControls = panel.querySelector("#awake-timer-controls");
     const primaryAction = panel.querySelector("#awake-primary-action");
     const retryAction = panel.querySelector("#awake-retry-action");
@@ -127,6 +145,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const settingsToggle = panel.querySelector("#awake-settings-toggle");
     const settingsDrawer = panel.querySelector("#awake-settings-drawer");
     const clientMetadata = panel.querySelector("#awake-client-metadata");
+    const beepAlertToggle = panel.querySelector("#awake-beep-alert-toggle");
 
     const platformHint = panel.querySelector("#awake-platform-hint");
     const macHint = panel.querySelector("#awake-mac-hint");
@@ -134,7 +153,13 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const otherHint = panel.querySelector("#awake-other-hint");
 
     const quickLaunchContainer = panel.querySelector("#awake-quick-launch");
+    const profileSelectControl = panel.querySelector("#awake-profile-select-control");
     const profileSelect = panel.querySelector("#awake-profile-select");
+    const profileSelectTrigger = panel.querySelector("#awake-profile-select-trigger");
+    const profileSelectLabel = panel.querySelector("#awake-profile-select-label");
+    const profileSelectListbox = panel.querySelector("#awake-profile-select-listbox");
+    const profileNewShortcut = panel.querySelector("#awake-profile-new-shortcut");
+    const profileNameField = panel.querySelector("#awake-profile-name-field");
     const profileNameInput = panel.querySelector("#awake-profile-name");
     const profileModeSelect = panel.querySelector("#awake-profile-mode");
     const profileDurationInput = panel.querySelector("#awake-profile-duration");
@@ -152,6 +177,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       !statusBadge ||
       !statusDetail ||
       !timerRemaining ||
+      !timerVisual ||
+      !timerProgressBar ||
+      !timerCountdown ||
       !timerControls ||
       !primaryAction ||
       !retryAction ||
@@ -161,12 +189,19 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       !settingsToggle ||
       !settingsDrawer ||
       !clientMetadata ||
+      !beepAlertToggle ||
       !platformHint ||
       !macHint ||
       !windowsHint ||
       !otherHint ||
       !quickLaunchContainer ||
+      !profileSelectControl ||
       !profileSelect ||
+      !profileSelectTrigger ||
+      !profileSelectLabel ||
+      !profileSelectListbox ||
+      !profileNewShortcut ||
+      !profileNameField ||
       !profileNameInput ||
       !profileModeSelect ||
       !profileDurationInput ||
@@ -181,7 +216,8 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       return;
     }
 
-    const engine = createWakeSessionEngine();
+    const sessionLease = retainWakeSessionEngine();
+    const engine = sessionLease.controller;
     const profileService = createWakeProfileService();
     const uiPreferenceService = createWakeUiPreferenceService({
       defaultCustomMinutes: PRESET_MINUTES.includes(30) ? 30 : PRESET_MINUTES[0],
@@ -203,12 +239,14 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     let settingsOpen = uiPreferences.settingsOpen;
     let persistedMode = uiPreferences.mode;
     let persistedCustomMinutes = uiPreferences.customMinutes;
+    let persistedBeepAlerts = uiPreferences.beepAlerts;
 
     const writeUiPreferences = (patch) => {
       uiPreferences = uiPreferenceService.write(patch);
       settingsOpen = uiPreferences.settingsOpen;
       persistedMode = uiPreferences.mode;
       persistedCustomMinutes = uiPreferences.customMinutes;
+      persistedBeepAlerts = uiPreferences.beepAlerts;
       return uiPreferences;
     };
 
@@ -229,6 +267,14 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       writeUiPreferences({ customMinutes: normalized });
     };
 
+    const persistBeepAlertPreference = (enabled) => {
+      if (persistedBeepAlerts === enabled) {
+        return;
+      }
+
+      writeUiPreferences({ beepAlerts: enabled });
+    };
+
     const defaultPreset = PRESET_MINUTES.includes(30) ? 30 : PRESET_MINUTES[0];
     let selectedPreset = PRESET_MINUTES.includes(uiPreferences.customMinutes)
       ? uiPreferences.customMinutes
@@ -245,6 +291,12 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     })();
     let eventHistory = [];
     let lockLosses = 0;
+    let profileSelectOpen = false;
+    let profileSelectActiveIndex = 0;
+    let profileSelectOptions = [];
+    let profilePulseTimeoutHandle = null;
+
+    const NEW_PROFILE_VALUE = "__new";
 
     const setSelectedProfileId = (profileId) => {
       selectedProfileId = profileId;
@@ -275,6 +327,94 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const setProfileFeedback = (message, tone = "neutral") => {
       profileFeedback.textContent = message;
       profileFeedback.setAttribute("data-tone", tone);
+    };
+
+    const setProfileSelectOpen = (isOpen) => {
+      profileSelectOpen = isOpen;
+      profileSelectTrigger.setAttribute("aria-expanded", String(isOpen));
+      profileSelectListbox.hidden = !isOpen;
+      profileSelectListbox.classList.toggle("hidden", !isOpen);
+    };
+
+    const setProfileActiveIndex = (index) => {
+      if (profileSelectOptions.length === 0) {
+        profileSelectActiveIndex = 0;
+        profileSelectTrigger.removeAttribute("aria-activedescendant");
+        return;
+      }
+
+      profileSelectActiveIndex = Math.max(0, Math.min(index, profileSelectOptions.length - 1));
+      const active = profileSelectOptions[profileSelectActiveIndex];
+      if (!active) {
+        profileSelectTrigger.removeAttribute("aria-activedescendant");
+        return;
+      }
+
+      profileSelectTrigger.setAttribute("aria-activedescendant", active.id);
+      const activeElement = profileSelectListbox.querySelector(`#${active.id}`);
+      activeElement?.scrollIntoView({ block: "nearest" });
+    };
+
+    const syncProfileSelectVisualState = () => {
+      profileSelectOptions.forEach((option, index) => {
+        const optionElement = profileSelectListbox.querySelector(`#${option.id}`);
+        if (!optionElement) {
+          return;
+        }
+
+        const isSelected = option.value === profileSelect.value;
+        const isActive = index === profileSelectActiveIndex;
+        optionElement.setAttribute("aria-selected", String(isSelected));
+        optionElement.setAttribute("data-selected", String(isSelected));
+        optionElement.setAttribute("data-active", String(isActive));
+      });
+    };
+
+    const closeProfileSelect = ({ focusTrigger = false } = {}) => {
+      setProfileSelectOpen(false);
+      syncProfileSelectVisualState();
+      if (focusTrigger) {
+        profileSelectTrigger.focus();
+      }
+    };
+
+    const openProfileSelect = () => {
+      setProfileSelectOpen(true);
+      const selectedIndex = profileSelectOptions.findIndex(
+        (option) => option.value === profileSelect.value,
+      );
+      setProfileActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+      syncProfileSelectVisualState();
+      profileSelectListbox.focus();
+    };
+
+    const setProfileSelectValue = (value, { emitChange = true } = {}) => {
+      profileSelect.value = value;
+      const matchedOption = profileSelectOptions.find((option) => option.value === value);
+      profileSelectLabel.textContent = matchedOption?.label ?? "Create new profile";
+
+      const selectedIndex = profileSelectOptions.findIndex((option) => option.value === value);
+      setProfileActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+      syncProfileSelectVisualState();
+
+      if (emitChange) {
+        profileSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    };
+
+    const pulseProfileNameField = () => {
+      profileNameField.classList.remove("awake-profile-input-pulse");
+      void profileNameField.offsetWidth;
+      profileNameField.classList.add("awake-profile-input-pulse");
+
+      if (profilePulseTimeoutHandle) {
+        window.clearTimeout(profilePulseTimeoutHandle);
+      }
+
+      profilePulseTimeoutHandle = window.setTimeout(() => {
+        profileNameField.classList.remove("awake-profile-input-pulse");
+        profilePulseTimeoutHandle = null;
+      }, 2000);
     };
 
     const getSelectedMode = () => {
@@ -386,18 +526,39 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     };
 
     const renderProfileOptions = () => {
-      profileSelect.innerHTML = "";
+      profileSelectListbox.innerHTML = "";
+      profileSelectOptions = [];
 
-      const createOption = document.createElement("option");
-      createOption.value = "__new";
-      createOption.textContent = "Create new profile";
-      profileSelect.append(createOption);
+      const addProfileSelectOption = (value, label) => {
+        const safeValue =
+          value === NEW_PROFILE_VALUE ? "new" : value.replace(/[^a-zA-Z0-9_-]/g, "_");
+        const id = `awake-profile-select-option-${safeValue}`;
+        profileSelectOptions.push({ value, label, id });
 
+        const optionElement = document.createElement("li");
+        optionElement.id = id;
+        optionElement.setAttribute("role", "option");
+        optionElement.setAttribute("aria-selected", "false");
+        optionElement.setAttribute("data-selected", "false");
+        optionElement.setAttribute("data-active", "false");
+        optionElement.className =
+          "awake-profile-list-option rounded-md px-2.5 py-2 text-sm text-base-200";
+        optionElement.textContent = label;
+
+        optionElement.addEventListener("click", () => {
+          setProfileSelectValue(value);
+          closeProfileSelect({ focusTrigger: true });
+        });
+
+        profileSelectListbox.append(optionElement);
+      };
+
+      addProfileSelectOption(NEW_PROFILE_VALUE, "Create new profile");
       profiles.forEach((profile) => {
-        const option = document.createElement("option");
-        option.value = profile.id;
-        option.textContent = `${profile.name}${profile.isDefault ? " (default)" : ""}`;
-        profileSelect.append(option);
+        addProfileSelectOption(
+          profile.id,
+          `${profile.name}${profile.isDefault ? " (default)" : ""}`,
+        );
       });
 
       const selectedExists = profiles.some((profile) => profile.id === selectedProfileId);
@@ -405,7 +566,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
         setSelectedProfileId(profiles.find((profile) => profile.isDefault)?.id ?? null);
       }
 
-      profileSelect.value = selectedProfileId ?? "__new";
+      setProfileSelectValue(selectedProfileId ?? NEW_PROFILE_VALUE, {
+        emitChange: false,
+      });
 
       const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? null;
       applyProfileToEditor(selectedProfile);
@@ -529,9 +692,18 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       renderClientMetadata(state);
 
       if (state.mode === "timer" && state.intent && state.remainingMs !== null) {
+        const progress = calculateTimerProgress(state.remainingMs, state.timerDurationMs);
+
+        timerVisual.hidden = false;
+        timerProgressBar.style.transform = `scaleX(${progress ?? 1})`;
+        timerCountdown.textContent = `${state.isPaused ? "Paused at " : "Time left: "}${formatDurationMs(state.remainingMs)}`;
+
         timerRemaining.hidden = false;
         timerRemaining.textContent = `Time left: ${formatDurationMs(state.remainingMs)}`;
       } else {
+        timerVisual.hidden = true;
+        timerProgressBar.style.transform = "scaleX(1)";
+        timerCountdown.textContent = "";
         timerRemaining.hidden = true;
         timerRemaining.textContent = "";
       }
@@ -545,6 +717,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
         applyBadgeStatus("Unsupported");
         statusDetail.textContent =
           "Screen Wake Lock is unavailable in this browser. Use Chromium for AwakeMode sessions.";
+      } else if (state.isPaused && state.mode === "timer") {
+        applyBadgeStatus("Paused");
+        statusDetail.textContent = "Timer is paused. Resume to continue countdown.";
       } else if (state.hasActiveLock) {
         applyBadgeStatus("Active");
         statusDetail.textContent =
@@ -564,7 +739,11 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
             : "No active wake lock session.";
       }
 
-      primaryAction.textContent = state.intent ? "Stop session" : "Start session";
+      primaryAction.textContent = state.intent
+        ? state.isPaused
+          ? "Resume session"
+          : "Stop session"
+        : "Start session";
       primaryAction.disabled = state.supportStatus === "unsupported" && !state.intent;
 
       retryAction.hidden = !(state.supportStatus === "blocked" && state.intent);
@@ -594,6 +773,11 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const toggleStartStop = async () => {
       const state = engine.getState();
       if (state.intent) {
+        if (state.isPaused && state.mode === "timer") {
+          await engine.resume();
+          return;
+        }
+
         await engine.stop();
         return;
       }
@@ -617,7 +801,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 
     const launchProfile = async (profile) => {
       setSelectedProfileId(profile.id);
-      profileSelect.value = profile.id;
+      setProfileSelectValue(profile.id, { emitChange: false });
       applyProfileToEditor(profile);
       applyProfileToSessionControls(profile);
 
@@ -656,7 +840,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     renderProfiles({ applyToSession: false });
     renderEventLog();
     renderModeState();
+    setProfileSelectOpen(false);
     setSettingsOpen(settingsOpen, { persist: false });
+    beepAlertToggle.checked = uiPreferences.beepAlerts;
 
     presetButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -695,6 +881,151 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       setSettingsOpen(!settingsOpen);
     });
 
+    beepAlertToggle.addEventListener("change", () => {
+      persistBeepAlertPreference(beepAlertToggle.checked);
+    });
+
+    profileSelectTrigger.addEventListener("click", () => {
+      if (profileSelectOpen) {
+        closeProfileSelect({ focusTrigger: true });
+        return;
+      }
+
+      openProfileSelect();
+    });
+
+    profileSelectTrigger.addEventListener("keydown", (event) => {
+      const { key } = event;
+      const moveActive = (delta) => {
+        if (profileSelectOptions.length === 0) {
+          return;
+        }
+
+        const nextIndex =
+          (profileSelectActiveIndex + delta + profileSelectOptions.length) %
+          profileSelectOptions.length;
+        setProfileActiveIndex(nextIndex);
+        syncProfileSelectVisualState();
+      };
+
+      if (key === "ArrowDown") {
+        event.preventDefault();
+        if (!profileSelectOpen) {
+          openProfileSelect();
+          moveActive(1);
+        } else {
+          moveActive(1);
+        }
+        return;
+      }
+
+      if (key === "ArrowUp") {
+        event.preventDefault();
+        if (!profileSelectOpen) {
+          openProfileSelect();
+          moveActive(-1);
+        } else {
+          moveActive(-1);
+        }
+        return;
+      }
+
+      if (key === "Enter" || key === " ") {
+        event.preventDefault();
+        if (!profileSelectOpen) {
+          openProfileSelect();
+          return;
+        }
+
+        const activeOption = profileSelectOptions[profileSelectActiveIndex];
+        if (activeOption) {
+          setProfileSelectValue(activeOption.value);
+        }
+        closeProfileSelect({ focusTrigger: true });
+        return;
+      }
+
+      if (key === "Escape" && profileSelectOpen) {
+        event.preventDefault();
+        closeProfileSelect({ focusTrigger: true });
+      }
+    });
+
+    profileSelectListbox.addEventListener("keydown", (event) => {
+      const { key } = event;
+      const moveActive = (delta) => {
+        if (profileSelectOptions.length === 0) {
+          return;
+        }
+
+        const nextIndex =
+          (profileSelectActiveIndex + delta + profileSelectOptions.length) %
+          profileSelectOptions.length;
+        setProfileActiveIndex(nextIndex);
+        syncProfileSelectVisualState();
+      };
+
+      if (key === "ArrowDown") {
+        event.preventDefault();
+        moveActive(1);
+        return;
+      }
+
+      if (key === "ArrowUp") {
+        event.preventDefault();
+        moveActive(-1);
+        return;
+      }
+
+      if (key === "Enter" || key === " ") {
+        event.preventDefault();
+        const activeOption = profileSelectOptions[profileSelectActiveIndex];
+        if (activeOption) {
+          setProfileSelectValue(activeOption.value);
+        }
+        closeProfileSelect({ focusTrigger: true });
+        return;
+      }
+
+      if (key === "Escape") {
+        event.preventDefault();
+        closeProfileSelect({ focusTrigger: true });
+        return;
+      }
+
+      if (key === "Tab") {
+        closeProfileSelect();
+      }
+    });
+
+    profileSelectControl.addEventListener("focusout", (event) => {
+      if (profileSelectControl.contains(event.relatedTarget)) {
+        return;
+      }
+
+      closeProfileSelect();
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!profileSelectOpen) {
+        return;
+      }
+
+      if (profileSelectControl.contains(event.target)) {
+        return;
+      }
+
+      closeProfileSelect();
+    });
+
+    profileNewShortcut.addEventListener("click", () => {
+      setSelectedProfileId(null);
+      setProfileSelectValue(NEW_PROFILE_VALUE);
+      closeProfileSelect();
+      profileNameInput.focus();
+      pulseProfileNameField();
+    });
+
     primaryAction.addEventListener("click", async () => {
       await toggleStartStop();
     });
@@ -709,8 +1040,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     });
 
     profileSelect.addEventListener("change", () => {
+      closeProfileSelect();
       const selectedId = profileSelect.value;
-      if (selectedId === "__new") {
+      if (selectedId === NEW_PROFILE_VALUE) {
         setSelectedProfileId(null);
         applyProfileToEditor(null);
         profileDelete.disabled = true;
@@ -817,7 +1149,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       detachShortcuts();
       unsubscribeState();
       unsubscribeEvents();
-      void engine.destroy();
+      sessionLease.release();
     });
   };
 
@@ -831,6 +1163,23 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 </script>
 
 <style>
+  #awake-control-panel :is(
+      button,
+      select,
+      label,
+      [role="button"],
+      [role="option"],
+      [role="combobox"],
+      input[type="checkbox"],
+      input[type="radio"]
+    ) {
+    cursor: pointer !important;
+  }
+
+  #awake-control-panel :is(button:disabled, select:disabled, input:disabled) {
+    cursor: not-allowed !important;
+  }
+
   #awake-control-panel .awake-settings-drawer {
     max-height: 0;
     opacity: 0;
@@ -853,6 +1202,60 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     color: var(--color-base-50);
   }
 
+  #awake-control-panel .awake-select {
+    appearance: none;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.25L6 6.25L11 1.25' stroke='%23A6A0B4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 0.75rem;
+  }
+
+  #awake-control-panel #awake-profile-select-trigger[aria-expanded="true"] {
+    border-color: var(--color-accent-300);
+  }
+
+  #awake-control-panel .awake-profile-list-option {
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  }
+
+  #awake-control-panel .awake-profile-list-option:hover,
+  #awake-control-panel .awake-profile-list-option[data-active="true"] {
+    background: color-mix(in oklab, var(--color-accent-600) 22%, var(--color-base-900));
+    color: white;
+  }
+
+  #awake-control-panel .awake-profile-list-option[data-selected="true"] {
+    border: 1px solid color-mix(in oklab, var(--color-accent-300) 70%, transparent);
+    color: var(--color-accent-100);
+  }
+
+  #awake-control-panel #awake-beep-alert-toggle {
+    cursor: pointer;
+    accent-color: var(--color-accent-500);
+    border-color: color-mix(in oklab, var(--color-accent-400) 70%, var(--color-base-700));
+  }
+
+  #awake-control-panel #awake-beep-alert-toggle:checked {
+    background-color: var(--color-accent-500);
+    border-color: var(--color-accent-400);
+  }
+
+  #awake-control-panel #awake-profile-name-field.awake-profile-input-pulse {
+    animation: awake-profile-field-pulse 2s ease;
+  }
+
+  @keyframes awake-profile-field-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(116, 92, 255, 0);
+    }
+    30%,
+    70% {
+      box-shadow: 0 0 0 6px rgba(116, 92, 255, 0.18);
+    }
+  }
+
   #awake-control-panel #awake-status-badge[data-status="active"] {
     border-color: oklch(0.76 0.15 156);
     color: oklch(0.9 0.14 156);
@@ -863,6 +1266,12 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     border-color: oklch(0.69 0.2 20);
     color: oklch(0.86 0.17 20);
     background: oklch(0.3 0.05 20);
+  }
+
+  #awake-control-panel #awake-status-badge[data-status="paused"] {
+    border-color: oklch(0.8 0.12 255);
+    color: oklch(0.93 0.09 255);
+    background: oklch(0.29 0.04 255);
   }
 
   #awake-control-panel #awake-status-badge[data-status="unsupported"] {

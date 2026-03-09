@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  calculateTimerProgress,
   createWakeSessionEngine,
   formatDurationMs,
   normalizeCustomMinutes,
@@ -277,6 +278,59 @@ describe("wakeSession engine", () => {
     expect(eventTypes).toContain("reacquire_success");
   });
 
+  it("pauses and resumes timer sessions with preserved remaining time", async () => {
+    const lock = createMockWakeLock();
+    const requestWakeLock = vi.fn(async () => lock);
+    const { environment } = createEnvironment({ requestWakeLock });
+
+    const engine = createWakeSessionEngine({
+      environment,
+      storageKey: "test:pause-resume",
+    });
+
+    await engine.start("timer", 20_000);
+    await vi.advanceTimersByTimeAsync(6_000);
+
+    const beforePause = engine.getState().remainingMs;
+    await engine.pause();
+
+    const pausedState = engine.getState();
+    expect(pausedState.intent).toBe(true);
+    expect(pausedState.isPaused).toBe(true);
+    expect(pausedState.hasActiveLock).toBe(false);
+    expect(pausedState.remainingMs).toBe(beforePause);
+
+    await vi.advanceTimersByTimeAsync(3_000);
+    expect(engine.getState().remainingMs).toBe(beforePause);
+
+    await engine.resume();
+    expect(engine.getState().isPaused).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(engine.getState().remainingMs).toBeLessThan(beforePause ?? 0);
+  });
+
+  it("treats indefinite pause action as stop", async () => {
+    const lock = createMockWakeLock();
+    const requestWakeLock = vi.fn(async () => lock);
+    const { environment } = createEnvironment({ requestWakeLock });
+
+    const engine = createWakeSessionEngine({
+      environment,
+      storageKey: "test:pause-indefinite",
+    });
+
+    await engine.start("indefinite");
+    await engine.pause();
+
+    expect(engine.getState()).toMatchObject({
+      intent: false,
+      isPaused: false,
+      hasActiveLock: false,
+      mode: "indefinite",
+    });
+  });
+
   it("marks unsupported browsers and refuses start", async () => {
     const { environment, requestWakeLock } = createEnvironment({ support: false });
     const engine = createWakeSessionEngine({
@@ -307,5 +361,13 @@ describe("wakeSession helpers", () => {
   it("formats duration text for countdown display", () => {
     expect(formatDurationMs(61_000)).toBe("1:01");
     expect(formatDurationMs(3_661_000)).toBe("1:01:01");
+  });
+
+  it("calculates timer progress safely for countdown visuals", () => {
+    expect(calculateTimerProgress(15_000, 30_000)).toBe(0.5);
+    expect(calculateTimerProgress(0, 30_000)).toBe(0);
+    expect(calculateTimerProgress(40_000, 30_000)).toBe(1);
+    expect(calculateTimerProgress(null, 30_000)).toBeNull();
+    expect(calculateTimerProgress(10_000, null)).toBeNull();
   });
 });

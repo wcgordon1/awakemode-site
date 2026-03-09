@@ -43,6 +43,7 @@ describe("wakeUiPreferences", () => {
       settingsOpen: false,
       mode: "indefinite",
       customMinutes: 30,
+      beepAlerts: true,
     });
   });
 
@@ -51,6 +52,7 @@ describe("wakeUiPreferences", () => {
     storage.setItem("awakemode:ui:settings-open", "true");
     storage.setItem("awakemode:ui:mode", "timer");
     storage.setItem("awakemode:ui:custom-minutes", "90");
+    storage.setItem("awakemode:ui:beep-alerts", "false");
 
     const service = createWakeUiPreferenceService({ storage });
 
@@ -58,6 +60,7 @@ describe("wakeUiPreferences", () => {
       settingsOpen: true,
       mode: "timer",
       customMinutes: 90,
+      beepAlerts: false,
     });
   });
 
@@ -66,6 +69,7 @@ describe("wakeUiPreferences", () => {
     storage.setItem("awakemode:ui:settings-open", "yes");
     storage.setItem("awakemode:ui:mode", "snooze");
     storage.setItem("awakemode:ui:custom-minutes", "2001");
+    storage.setItem("awakemode:ui:beep-alerts", "bad");
 
     const service = createWakeUiPreferenceService({
       storage,
@@ -77,6 +81,7 @@ describe("wakeUiPreferences", () => {
       settingsOpen: false,
       mode: "indefinite",
       customMinutes: 45,
+      beepAlerts: true,
     });
   });
 
@@ -84,17 +89,19 @@ describe("wakeUiPreferences", () => {
     const storage = new MemoryStorage();
     const service = createWakeUiPreferenceService({ storage });
 
-    service.write({ mode: "timer", customMinutes: 120 });
+    service.write({ mode: "timer", customMinutes: 120, beepAlerts: false });
     const updated = service.write({ settingsOpen: true, customMinutes: 0 });
 
     expect(updated).toEqual({
       settingsOpen: true,
       mode: "timer",
       customMinutes: 120,
+      beepAlerts: false,
     });
     expect(storage.getItem("awakemode:ui:settings-open")).toBe("true");
     expect(storage.getItem("awakemode:ui:mode")).toBe("timer");
     expect(storage.getItem("awakemode:ui:custom-minutes")).toBe("120");
+    expect(storage.getItem("awakemode:ui:beep-alerts")).toBe("false");
   });
 
   it("gracefully handles storage read/write failures", () => {
@@ -107,8 +114,11 @@ describe("wakeUiPreferences", () => {
       settingsOpen: false,
       mode: "indefinite",
       customMinutes: 30,
+      beepAlerts: true,
     });
 
-    expect(() => service.write({ mode: "timer", customMinutes: 25 })).not.toThrow();
+    expect(() =>
+      service.write({ mode: "timer", customMinutes: 25, beepAlerts: false }),
+    ).not.toThrow();
   });
 });

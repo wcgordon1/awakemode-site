@@ -8,6 +8,7 @@ import BaseHead from "@/components/fundations/head/BaseHead.astro";
 import Search from "@/components/global/Search.astro";
 import Footer from "@/components/global/Footer.astro";
 import Navigation from "@/components/global/Navigation.astro";
+import AwakeMiniControls from "@/components/awake/AwakeMiniControls.astro";
 // Scripts
 import AosBody from "@/components/fundations/scripts/AosBody.astro";
 import TiltJSBody from "@/components/fundations/scripts/TiltJSBody.astro";
@@ -32,6 +33,7 @@ const { hideNav = false, hideFooter = false } = Astro.props;
     <main class="relative grow">
       <slot />
     </main>
+    <AwakeMiniControls />
     {!hideFooter && <Footer />}
     <!-- Scripts -->
     <AosBody />

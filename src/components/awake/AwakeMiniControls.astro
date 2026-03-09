@@ -1,0 +1,275 @@
+<div id="awake-mini-controls" class="awake-mini-controls" hidden>
+  <div class="awake-mini-shell">
+    <div class="awake-mini-actions">
+      <button id="awake-mini-primary" type="button" class="awake-mini-btn awake-mini-btn-primary">Pause</button>
+      <button id="awake-mini-stop" type="button" class="awake-mini-btn awake-mini-btn-secondary">Stop</button>
+    </div>
+    <p id="awake-mini-time" class="awake-mini-time">--:--</p>
+  </div>
+</div>
+
+<script>
+  import { createTenSecondAlertTracker, playTripleBeep } from "../../lib/wakeAlerts";
+  import { formatDurationMs } from "../../lib/wakeSession";
+  import { retainWakeSessionEngine } from "../../lib/wakeSessionRuntime";
+  import { createWakeUiPreferenceService } from "../../lib/wakeUiPreferences";
+
+  const HOME_PATHS = new Set(["/", ""]);
+
+  const setupAwakeMiniControls = () => {
+    const root = document.getElementById("awake-mini-controls");
+    const primaryAction = document.getElementById("awake-mini-primary");
+    const stopAction = document.getElementById("awake-mini-stop");
+    const timeLabel = document.getElementById("awake-mini-time");
+
+    if (!root || !primaryAction || !stopAction || !timeLabel) {
+      return;
+    }
+
+    const lease = retainWakeSessionEngine();
+    const engine = lease.controller;
+    const uiPreferenceService = createWakeUiPreferenceService();
+    const alertTracker = createTenSecondAlertTracker();
+
+    const isHomePage = HOME_PATHS.has(window.location.pathname);
+    const mainPanel = isHomePage
+      ? document.getElementById("awake-control-panel")
+      : null;
+
+    let mainPanelVisible = Boolean(isHomePage && mainPanel);
+    let currentState = engine.getState();
+
+    const toggleVisibility = (state) => {
+      const hasSession =
+        state.intent &&
+        (state.isPaused || state.hasActiveLock || state.supportStatus === "blocked");
+
+      if (!hasSession) {
+        root.hidden = true;
+        return;
+      }
+
+      if (isHomePage && mainPanel) {
+        root.hidden = mainPanelVisible;
+        return;
+      }
+
+      root.hidden = false;
+    };
+
+    const renderMiniState = (state) => {
+      currentState = state;
+
+      const isTimer = state.mode === "timer";
+      if (isTimer) {
+        primaryAction.textContent = state.isPaused ? "Play" : "Pause";
+        stopAction.hidden = !state.intent;
+        stopAction.disabled = !state.intent;
+      } else {
+        primaryAction.textContent = "Stop";
+        stopAction.hidden = true;
+        stopAction.disabled = true;
+      }
+
+      if (isTimer && state.remainingMs !== null) {
+        timeLabel.textContent = formatDurationMs(state.remainingMs);
+      } else if (isTimer) {
+        timeLabel.textContent = state.isPaused ? "Paused" : "--:--";
+      } else {
+        timeLabel.textContent = "Indefinite";
+      }
+
+      toggleVisibility(state);
+
+      const shouldAlert = alertTracker.update(
+        state.remainingMs,
+        state.mode === "timer" && state.intent,
+      );
+
+      if (shouldAlert && uiPreferenceService.read().beepAlerts) {
+        void playTripleBeep();
+      }
+    };
+
+    const onPrimaryAction = async () => {
+      if (!currentState.intent) {
+        return;
+      }
+
+      if (currentState.mode !== "timer") {
+        await engine.stop();
+        return;
+      }
+
+      if (currentState.isPaused) {
+        await engine.resume();
+        return;
+      }
+
+      await engine.pause();
+    };
+
+    const onStopAction = async () => {
+      if (!currentState.intent) {
+        return;
+      }
+
+      await engine.stop();
+    };
+
+    primaryAction.addEventListener("click", () => {
+      void onPrimaryAction();
+    });
+
+    stopAction.addEventListener("click", () => {
+      void onStopAction();
+    });
+
+    let observer;
+    if (isHomePage && mainPanel && "IntersectionObserver" in window) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          const [entry] = entries;
+          mainPanelVisible = Boolean(entry?.isIntersecting);
+          toggleVisibility(currentState);
+        },
+        {
+          threshold: 0.15,
+        },
+      );
+
+      observer.observe(mainPanel);
+    }
+
+    const unsubscribeState = engine.subscribe((state) => {
+      renderMiniState(state);
+    });
+
+    const unsubscribeEvents = engine.subscribeEvents((event) => {
+      if (
+        (event.type === "started" && event.detail === "timer") ||
+        event.type === "stopped" ||
+        event.type === "timer_completed"
+      ) {
+        alertTracker.reset();
+      }
+    });
+
+    renderMiniState(currentState);
+
+    const cleanup = () => {
+      observer?.disconnect();
+      unsubscribeState();
+      unsubscribeEvents();
+      lease.release();
+    };
+
+    window.addEventListener("pagehide", cleanup, { once: true });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupAwakeMiniControls, {
+      once: true,
+    });
+  } else {
+    setupAwakeMiniControls();
+  }
+</script>
+
+<style>
+  .awake-mini-controls {
+    position: fixed;
+    left: 1rem;
+    bottom: 1rem;
+    z-index: 55;
+  }
+
+  .awake-mini-shell {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--color-accent-400) 70%, var(--color-base-700));
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--color-base-950) 86%, transparent);
+    backdrop-filter: blur(12px);
+    padding: 0.75rem 0.85rem;
+    box-shadow:
+      var(--shadow-big),
+      0 0 0 1px color-mix(in oklab, var(--color-accent-300) 45%, transparent),
+      0 0 24px color-mix(in oklab, var(--color-accent-500) 22%, transparent);
+  }
+
+  .awake-mini-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .awake-mini-btn {
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-base-700);
+    background: var(--color-base-900);
+    color: var(--color-base-100);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    min-height: 2.2rem;
+    min-width: 4.25rem;
+    padding: 0.56rem 0.82rem;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .awake-mini-btn:hover {
+    border-color: var(--color-accent-300);
+    color: white;
+  }
+
+  .awake-mini-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .awake-mini-btn-primary {
+    border-color: var(--color-accent-400);
+    color: var(--color-accent-100);
+  }
+
+  .awake-mini-time {
+    color: var(--color-accent-200);
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    font-weight: 600;
+    min-width: 5.2rem;
+    text-align: right;
+  }
+
+  @media (max-width: 640px) {
+    .awake-mini-controls {
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .awake-mini-shell {
+      gap: 0.55rem;
+      padding: 0.58rem 0.64rem;
+    }
+
+    .awake-mini-actions {
+      gap: 0.35rem;
+    }
+
+    .awake-mini-btn {
+      min-height: 2rem;
+      min-width: 3.35rem;
+      padding: 0.45rem 0.58rem;
+      font-size: 0.68rem;
+    }
+
+    .awake-mini-time {
+      min-width: 3.65rem;
+      font-size: 0.82rem;
+    }
+  }
+</style>

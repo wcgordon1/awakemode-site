@@ -4,6 +4,8 @@ export type WakePlatform = "mac" | "windows" | "other";
 
 export type WakeSessionEventType =
   | "started"
+  | "paused"
+  | "resumed"
   | "stopped"
   | "acquired"
   | "released"
@@ -22,8 +24,10 @@ export interface WakeSessionEvent {
 export interface WakeSessionState {
   intent: boolean;
   hasActiveLock: boolean;
+  isPaused: boolean;
   mode: WakeSessionMode;
   remainingMs: number | null;
+  timerDurationMs: number | null;
   lastError: string | null;
   platform: WakePlatform;
   supportStatus: WakeSupportStatus;
@@ -64,6 +68,8 @@ export interface WakeSessionController {
   subscribe(listener: (state: WakeSessionState) => void): () => void;
   subscribeEvents(listener: (event: WakeSessionEvent) => void): () => void;
   start(mode: WakeSessionMode, durationMs?: number): Promise<void>;
+  pause(): Promise<void>;
+  resume(): Promise<void>;
   stop(): Promise<void>;
   retry(): Promise<void>;
   destroy(): Promise<void>;
@@ -73,12 +79,33 @@ interface PersistedSessionIntent {
   intent: boolean;
   mode: WakeSessionMode;
   endAt: number | null;
+  isPaused: boolean;
+  pausedRemainingMs: number | null;
+  timerDurationMs: number | null;
 }
 
 const DEFAULT_STORAGE_KEY = "awakemode:wake-session-intent";
 const REACQUIRE_BACKOFF_SEQUENCE = [500, 2000, 5000, 10000] as const;
 
 export const PRESET_MINUTES = [15, 30, 60, 120] as const;
+
+export function calculateTimerProgress(
+  remainingMs: number | null,
+  timerDurationMs: number | null,
+): number | null {
+  if (
+    remainingMs === null ||
+    timerDurationMs === null ||
+    !Number.isFinite(remainingMs) ||
+    !Number.isFinite(timerDurationMs) ||
+    timerDurationMs <= 0
+  ) {
+    return null;
+  }
+
+  const ratio = remainingMs / timerDurationMs;
+  return Math.max(0, Math.min(1, ratio));
+}
 
 export function normalizeCustomMinutes(
   value: number | string | null | undefined,
@@ -280,6 +307,19 @@ function readPersistedIntent(
       parsed.endAt === null || typeof parsed.endAt === "number"
         ? parsed.endAt
         : null;
+    const validIsPaused = parsed.isPaused === true;
+    const validPausedRemainingMs =
+      typeof parsed.pausedRemainingMs === "number" &&
+      Number.isFinite(parsed.pausedRemainingMs) &&
+      parsed.pausedRemainingMs > 0
+        ? parsed.pausedRemainingMs
+        : null;
+    const validTimerDurationMs =
+      typeof parsed.timerDurationMs === "number" &&
+      Number.isFinite(parsed.timerDurationMs) &&
+      parsed.timerDurationMs > 0
+        ? parsed.timerDurationMs
+        : null;
 
     if (!validMode || validIntent === null) {
       return null;
@@ -289,6 +329,9 @@ function readPersistedIntent(
       intent: validIntent,
       mode: validMode,
       endAt: validEndAt,
+      isPaused: validIsPaused,
+      pausedRemainingMs: validPausedRemainingMs,
+      timerDurationMs: validTimerDurationMs,
     };
   } catch {
     return null;
@@ -314,8 +357,10 @@ export function createWakeSessionEngine(
   const state: WakeSessionState = {
     intent: false,
     hasActiveLock: false,
+    isPaused: false,
     mode: "indefinite",
     remainingMs: null,
+    timerDurationMs: null,
     lastError: null,
     platform: detectPlatform(env.platform()),
     supportStatus: env.hasWakeLockSupport() ? "supported" : "unsupported",
@@ -340,7 +385,12 @@ export function createWakeSessionEngine(
   }
 
   function shouldAttemptWakeLock(): boolean {
-    return state.intent && state.supportStatus !== "unsupported" && env.isVisible();
+    return (
+      state.intent &&
+      !state.isPaused &&
+      state.supportStatus !== "unsupported" &&
+      env.isVisible()
+    );
   }
 
   function persistIntent() {
@@ -352,7 +402,11 @@ export function createWakeSessionEngine(
     const payload: PersistedSessionIntent = {
       intent: state.intent,
       mode: state.mode,
-      endAt,
+      endAt: state.mode === "timer" && !state.isPaused ? endAt : null,
+      isPaused: state.mode === "timer" ? state.isPaused : false,
+      pausedRemainingMs:
+        state.mode === "timer" && state.isPaused ? state.remainingMs : null,
+      timerDurationMs: state.mode === "timer" ? state.timerDurationMs : null,
     };
 
     env.storage().setItem(storageKey, JSON.stringify(payload));
@@ -431,7 +485,9 @@ export function createWakeSessionEngine(
 
   async function completeTimerSession() {
     state.intent = false;
+    state.isPaused = false;
     state.remainingMs = 0;
+    state.timerDurationMs = null;
     state.lastError = null;
     endAt = null;
 
@@ -453,7 +509,12 @@ export function createWakeSessionEngine(
   }
 
   function ensureTicker() {
-    if (state.mode !== "timer" || endAt === null || !state.intent) {
+    if (
+      state.mode !== "timer" ||
+      state.isPaused ||
+      endAt === null ||
+      !state.intent
+    ) {
       clearTicker();
       return;
     }
@@ -463,7 +524,12 @@ export function createWakeSessionEngine(
     }
 
     tickHandle = env.setInterval(() => {
-      if (state.mode !== "timer" || endAt === null || !state.intent) {
+      if (
+        state.mode !== "timer" ||
+        state.isPaused ||
+        endAt === null ||
+        !state.intent
+      ) {
         clearTicker();
         return;
       }
@@ -488,7 +554,12 @@ export function createWakeSessionEngine(
       return true;
     }
 
-    if (state.mode === "timer" && endAt !== null && endAt <= env.now()) {
+    if (
+      state.mode === "timer" &&
+      !state.isPaused &&
+      endAt !== null &&
+      endAt <= env.now()
+    ) {
       await completeTimerSession();
       return false;
     }
@@ -565,20 +636,65 @@ export function createWakeSessionEngine(
 
     state.intent = true;
     state.mode = persisted.mode;
-    endAt = persisted.mode === "timer" ? persisted.endAt : null;
+    state.isPaused = persisted.mode === "timer" ? persisted.isPaused : false;
+    state.timerDurationMs =
+      persisted.mode === "timer" ? persisted.timerDurationMs : null;
+    endAt =
+      persisted.mode === "timer" && !state.isPaused ? persisted.endAt : null;
 
     if (state.mode === "timer") {
+      if (state.isPaused) {
+        const pausedRemaining =
+          persisted.pausedRemainingMs ??
+          (endAt !== null ? Math.max(0, endAt - env.now()) : null);
+
+        if (!isValidDuration(pausedRemaining ?? undefined)) {
+          state.intent = false;
+          state.isPaused = false;
+          state.remainingMs = 0;
+          state.timerDurationMs = null;
+          endAt = null;
+          persistIntent();
+          emitState();
+          return;
+        }
+
+        state.remainingMs = pausedRemaining;
+        if (!state.timerDurationMs || state.timerDurationMs < pausedRemaining) {
+          state.timerDurationMs = pausedRemaining;
+        }
+        clearTicker();
+        emitState();
+        return;
+      }
+
+      if (endAt === null) {
+        state.intent = false;
+        state.remainingMs = null;
+        state.timerDurationMs = null;
+        persistIntent();
+        emitState();
+        return;
+      }
+
       updateRemainingTime();
       if (state.remainingMs === 0) {
         state.intent = false;
+        state.isPaused = false;
+        state.timerDurationMs = null;
         endAt = null;
         persistIntent();
         emitState();
         return;
       }
+      if (!state.timerDurationMs && state.remainingMs !== null) {
+        state.timerDurationMs = state.remainingMs;
+      }
       ensureTicker();
     } else {
+      state.isPaused = false;
       state.remainingMs = null;
+      state.timerDurationMs = null;
       clearTicker();
     }
 
@@ -591,7 +707,7 @@ export function createWakeSessionEngine(
   }
 
   removeVisibilityListener = env.addVisibilityListener(() => {
-    if (!state.intent) {
+    if (!state.intent || state.isPaused) {
       return;
     }
 
@@ -626,10 +742,13 @@ export function createWakeSessionEngine(
     async start(mode, durationMs) {
       state.mode = mode;
       state.lastError = null;
+      state.isPaused = false;
 
       if (state.supportStatus === "unsupported") {
         state.intent = false;
+        state.isPaused = false;
         state.hasActiveLock = false;
+        state.timerDurationMs = null;
         state.lastError = "Screen wake lock is not supported in this browser.";
         emitState();
         return;
@@ -643,12 +762,14 @@ export function createWakeSessionEngine(
           throw new Error("Timer duration must be greater than zero.");
         }
 
+        state.timerDurationMs = durationMs;
         endAt = env.now() + durationMs;
         updateRemainingTime();
         ensureTicker();
       } else {
         endAt = null;
         state.remainingMs = null;
+        state.timerDurationMs = null;
         clearTicker();
       }
 
@@ -661,9 +782,100 @@ export function createWakeSessionEngine(
       }
     },
 
+    async pause() {
+      if (!state.intent) {
+        return;
+      }
+
+      if (state.mode !== "timer") {
+        state.intent = false;
+        state.isPaused = false;
+        state.remainingMs = null;
+        state.timerDurationMs = null;
+        state.lastError = null;
+        endAt = null;
+
+        persistIntent();
+        clearTicker();
+        clearReacquireTimeout();
+        reacquireAttempt = 0;
+
+        emitEvent("stopped", "manual");
+        await releaseWakeLock("manual");
+
+        if (state.supportStatus !== "unsupported") {
+          state.supportStatus = "supported";
+        }
+
+        emitState();
+        return;
+      }
+
+      if (state.isPaused) {
+        return;
+      }
+
+      updateRemainingTime();
+      const remaining = state.remainingMs;
+      if (!isValidDuration(remaining ?? undefined)) {
+        await completeTimerSession();
+        return;
+      }
+
+      state.isPaused = true;
+      state.remainingMs = remaining;
+      if (!state.timerDurationMs || state.timerDurationMs < remaining) {
+        state.timerDurationMs = remaining;
+      }
+      state.lastError = null;
+      endAt = null;
+
+      persistIntent();
+      clearTicker();
+      clearReacquireTimeout();
+      reacquireAttempt = 0;
+
+      emitEvent("paused");
+      await releaseWakeLock("pause");
+
+      if (state.supportStatus !== "unsupported") {
+        state.supportStatus = "supported";
+      }
+
+      emitState();
+    },
+
+    async resume() {
+      if (!state.intent || state.mode !== "timer" || !state.isPaused) {
+        return;
+      }
+
+      const remaining = state.remainingMs;
+      if (!isValidDuration(remaining ?? undefined)) {
+        await completeTimerSession();
+        return;
+      }
+
+      state.isPaused = false;
+      state.lastError = null;
+      endAt = env.now() + remaining;
+
+      ensureTicker();
+      persistIntent();
+      emitEvent("resumed");
+      emitState();
+
+      const acquired = await acquireWakeLock("resume");
+      if (!acquired) {
+        scheduleReacquireAttempt();
+      }
+    },
+
     async stop() {
       state.intent = false;
+      state.isPaused = false;
       state.remainingMs = null;
+      state.timerDurationMs = null;
       state.lastError = null;
       endAt = null;
 

@@ -7,11 +7,11 @@ You are continuing work on AwakeMode in this repository:
 /Users/williamgordon/Downloads/awakemode
 
 Before making any changes, read these files:
-1) docs/handoffs/2026-03-09-awakemode-v1.1.md
+1) docs/handoffs/2026-03-09-awakemode-v1.3.1.md
 2) docs/runbooks/dev-commands.md
 
 Context:
-- v1.1 (control deck, profile system, shortcuts, wake-event reliability upgrades) has already been implemented.
+- v1.2-v1.3.1 has been implemented (minimal main UI, settings drawer, pause/resume timer, floating mini controls, 10-second beep alerts, custom profile listbox, clickability/UI polish).
 - Keep browser-only scope unless explicitly instructed otherwise.
 - Chromium is the first-class target.
 
@@ -34,14 +34,14 @@ Important constraints:
 ## Optional: Starter Prompt for Chrome Extension Phase
 
 ```text
-Continue from AwakeMode v1.1 and begin Chrome extension architecture planning.
+Continue from AwakeMode v1.3.1 and begin Chrome extension architecture planning.
 Read first:
-- docs/handoffs/2026-03-09-awakemode-v1.1.md
+- docs/handoffs/2026-03-09-awakemode-v1.3.1.md
 - docs/runbooks/dev-commands.md
 
 Deliver:
 1) extension architecture options (MV3) with pros/cons,
-2) shared-module migration plan for wakeSession/wakeProfiles/wakeShortcuts,
+2) shared-module migration plan for wakeSession/wakeProfiles/wakeShortcuts/wakeAlerts,
 3) phased implementation roadmap,
 4) risk list (permissions, lifecycle, wake reliability),
 5) minimal scaffold implementation once plan is approved.

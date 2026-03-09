@@ -11,4 +11,19 @@
   <p id="awake-status-detail" class="mt-3 text-sm text-base-300">
     No active wake lock session.
   </p>
+
+  <div id="awake-timer-visual" class="mt-4 space-y-2" hidden>
+    <div class="h-1.5 w-full overflow-hidden rounded-full bg-base-800">
+      <div
+        id="awake-timer-progress-bar"
+        class="h-full w-full origin-left rounded-full bg-accent-400 transition-transform duration-500 ease-out"
+        style="transform: scaleX(1)"
+      ></div>
+    </div>
+    <p
+      id="awake-timer-countdown"
+      class="text-base font-medium text-accent-100 sm:text-lg"
+      aria-live="polite"
+    ></p>
+  </div>
 </div>

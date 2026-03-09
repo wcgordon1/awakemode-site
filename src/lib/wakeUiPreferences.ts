@@ -8,12 +8,14 @@ export interface WakeUiPreferenceKeys {
   settingsOpen: string;
   mode: string;
   customMinutes: string;
+  beepAlerts: string;
 }
 
 export interface WakeUiPreferences {
   settingsOpen: boolean;
   mode: WakeSessionMode;
   customMinutes: number;
+  beepAlerts: boolean;
 }
 
 export interface WakeUiPreferenceService {
@@ -32,6 +34,7 @@ const DEFAULT_KEYS: WakeUiPreferenceKeys = {
   settingsOpen: "awakemode:ui:settings-open",
   mode: "awakemode:ui:mode",
   customMinutes: "awakemode:ui:custom-minutes",
+  beepAlerts: "awakemode:ui:beep-alerts",
 };
 
 const DEFAULT_MODE: WakeSessionMode = "indefinite";
@@ -82,6 +85,7 @@ export function createWakeUiPreferenceService(
     settingsOpen: options.keys?.settingsOpen ?? DEFAULT_KEYS.settingsOpen,
     mode: options.keys?.mode ?? DEFAULT_KEYS.mode,
     customMinutes: options.keys?.customMinutes ?? DEFAULT_KEYS.customMinutes,
+    beepAlerts: options.keys?.beepAlerts ?? DEFAULT_KEYS.beepAlerts,
   };
 
   const defaultMode = parseMode(options.defaultMode ?? null, DEFAULT_MODE);
@@ -109,6 +113,7 @@ export function createWakeUiPreferenceService(
       settingsOpen: parseBoolean(safeRead(keys.settingsOpen), false),
       mode: parseMode(safeRead(keys.mode), defaultMode),
       customMinutes: parseCustomMinutes(safeRead(keys.customMinutes), defaultCustomMinutes),
+      beepAlerts: parseBoolean(safeRead(keys.beepAlerts), true),
     };
   };
 
@@ -125,11 +130,16 @@ export function createWakeUiPreferenceService(
         mode: parseMode(next.mode ?? null, current.mode),
         customMinutes:
           normalizeCustomMinutes(next.customMinutes) ?? current.customMinutes,
+        beepAlerts:
+          typeof next.beepAlerts === "boolean"
+            ? next.beepAlerts
+            : current.beepAlerts,
       };
 
       safeWrite(keys.settingsOpen, String(merged.settingsOpen));
       safeWrite(keys.mode, merged.mode);
       safeWrite(keys.customMinutes, String(merged.customMinutes));
+      safeWrite(keys.beepAlerts, String(merged.beepAlerts));
 
       return merged;
     },
