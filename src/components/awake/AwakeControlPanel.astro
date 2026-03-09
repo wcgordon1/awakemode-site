@@ -1,6 +1,7 @@
 ---
 import CapabilityBanner from "@/components/awake/CapabilityBanner.astro";
 import CustomTimerInput from "@/components/awake/CustomTimerInput.astro";
+import PlatformHint from "@/components/awake/PlatformHint.astro";
 import PrimarySessionAction from "@/components/awake/PrimarySessionAction.astro";
 import ProfileManager from "@/components/awake/ProfileManager.astro";
 import ProfileQuickLaunch from "@/components/awake/ProfileQuickLaunch.astro";
@@ -15,6 +16,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
   <div class="awake-shell rounded-3xl border border-base-700 bg-base-950/70 p-6 shadow-massive backdrop-blur-xl">
     <div class="space-y-4 text-left">
       <SessionStatusBadge />
+      <CapabilityBanner />
 
       <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
         <p class="awake-kicker text-xs uppercase tracking-wider text-base-400">Session mode</p>
@@ -58,32 +60,67 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       </div>
 
       <div id="awake-settings-drawer" class="awake-settings-drawer" data-open="false" aria-hidden="true">
-        <div class="space-y-4 border-t border-base-700 pt-4">
-          <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
-            <p class="awake-kicker text-xs uppercase tracking-wider text-base-400">Preferences</p>
-            <label class="mt-3 flex items-center justify-between gap-3 text-sm text-base-300">
-              <span class="awake-label">10-second beep alert</span>
+        <div class="space-y-5 border-t border-base-700 pt-4">
+          <section class="awake-settings-section rounded-xl border border-base-700 bg-base-900/70 p-4">
+            <header class="mb-4 space-y-1">
+              <p class="awake-settings-title text-sm font-semibold text-base-100">Everyday controls</p>
+              <p class="text-xs text-base-500">
+                Adjust alerts and session behavior used in regular workflows.
+              </p>
+            </header>
+            <label class="flex items-start justify-between gap-3 text-sm text-base-300">
+              <span class="space-y-1">
+                <span class="awake-label block">Session beep alerts</span>
+                <span class="block text-xs text-base-500">Startup chirp and 10-second warning</span>
+              </span>
               <input
                 id="awake-beep-alert-toggle"
                 type="checkbox"
-                class="h-4 w-4 rounded border-base-600 bg-base-900 text-accent-400 focus:ring-accent-300"
+                class="mt-0.5 h-4 w-4 rounded border-base-600 bg-base-900 text-accent-400 focus:ring-accent-300"
               />
             </label>
-          </div>
+          </section>
 
-          <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
-            <p class="awake-kicker text-xs uppercase tracking-wider text-base-400">Profiles</p>
-            <div class="mt-3 space-y-4">
+          <section class="awake-settings-section rounded-xl border border-base-700 bg-base-900/70 p-4">
+            <header class="mb-4 space-y-1">
+              <p class="awake-settings-title text-sm font-semibold text-base-100">Profiles</p>
+              <p class="text-xs text-base-500">
+                Save reusable session recipes and launch the top three instantly.
+              </p>
+            </header>
+            <div class="space-y-4">
               <ProfileQuickLaunch />
               <ProfileManager />
             </div>
-          </div>
+          </section>
 
-          <ShortcutHints />
+          <section class="awake-settings-section rounded-xl border border-base-700 bg-base-900/70 p-4">
+            <header class="mb-4 space-y-1">
+              <p class="awake-settings-title text-sm font-semibold text-base-100">Monitoring</p>
+              <p class="text-xs text-base-500">
+                Track wake-lock health and review recent session events.
+              </p>
+            </header>
+            <StatusRail />
+          </section>
 
-          <StatusRail />
-
-          <CapabilityBanner />
+          <section class="awake-settings-section rounded-xl border border-base-700 bg-base-900/70 p-4">
+            <header class="mb-4 space-y-1">
+              <p class="awake-settings-title text-sm font-semibold text-base-100">Support</p>
+              <p class="text-xs text-base-500">
+                Keyboard controls and fallback guidance when wake lock is blocked.
+              </p>
+            </header>
+            <div class="space-y-4">
+              <ShortcutHints />
+              <div class="rounded-xl border border-base-700 bg-base-900/80 p-4">
+                <p class="awake-kicker text-xs uppercase tracking-wider text-base-400">Fallback help</p>
+                <div class="mt-3">
+                  <PlatformHint />
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -105,6 +142,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
   import { createWakeUiPreferenceService } from "../../lib/wakeUiPreferences";
 
   const SELECTED_PROFILE_STORAGE_KEY = "awakemode:selected-profile-id";
+  const EVENT_LOG_PREVIEW_COUNT = 4;
 
   const formatEventLabel = (eventType) => {
     const labels = {
@@ -172,6 +210,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 
     const lockLossCount = panel.querySelector("#awake-lock-loss-count");
     const eventLog = panel.querySelector("#awake-event-log");
+    const eventLogToggle = panel.querySelector("#awake-event-log-toggle");
 
     if (
       !capabilityBanner ||
@@ -212,7 +251,8 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       !profileSetDefault ||
       !profileFeedback ||
       !lockLossCount ||
-      !eventLog
+      !eventLog ||
+      !eventLogToggle
     ) {
       return;
     }
@@ -237,14 +277,16 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     });
 
     let uiPreferences = uiPreferenceService.read();
-    let settingsOpen = uiPreferences.settingsOpen;
+    let settingsOpen = false;
     let persistedMode = uiPreferences.mode;
     let persistedCustomMinutes = uiPreferences.customMinutes;
     let persistedBeepAlerts = uiPreferences.beepAlerts;
 
     const writeUiPreferences = (patch) => {
       uiPreferences = uiPreferenceService.write(patch);
-      settingsOpen = uiPreferences.settingsOpen;
+      if (typeof patch.settingsOpen === "boolean") {
+        settingsOpen = patch.settingsOpen;
+      }
       persistedMode = uiPreferences.mode;
       persistedCustomMinutes = uiPreferences.customMinutes;
       persistedBeepAlerts = uiPreferences.beepAlerts;
@@ -276,13 +318,13 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       writeUiPreferences({ beepAlerts: enabled });
     };
 
-    const maybePlayTimerStartChirp = () => {
+    const maybePlaySessionStartChirp = () => {
       if (!persistedBeepAlerts) {
         return;
       }
 
       const state = engine.getState();
-      if (!state.intent || state.mode !== "timer") {
+      if (!state.intent) {
         return;
       }
 
@@ -323,6 +365,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       }
     })();
     let eventHistory = [];
+    let eventLogExpanded = false;
     let currentSessionStartTimestamp = inferSessionStartTimestamp(engine.getState(), Date.now());
     let lockLosses = 0;
     let profileSelectOpen = false;
@@ -674,7 +717,21 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const renderEventLog = () => {
       eventLog.innerHTML = "";
 
-      if (eventHistory.length === 0) {
+      const hasOverflow = eventHistory.length > EVENT_LOG_PREVIEW_COUNT;
+      if (!hasOverflow) {
+        eventLogExpanded = false;
+      }
+
+      eventLogToggle.hidden = !hasOverflow;
+      eventLogToggle.disabled = !hasOverflow;
+      eventLogToggle.setAttribute("aria-expanded", String(eventLogExpanded));
+      eventLogToggle.textContent = eventLogExpanded ? "Show less" : "Show full log";
+
+      const visibleEvents = eventLogExpanded
+        ? eventHistory
+        : eventHistory.slice(0, EVENT_LOG_PREVIEW_COUNT);
+
+      if (visibleEvents.length === 0) {
         const empty = document.createElement("tr");
         const emptyCell = document.createElement("td");
         emptyCell.colSpan = 4;
@@ -685,7 +742,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
         return;
       }
 
-      eventHistory.forEach((entry) => {
+      visibleEvents.forEach((entry) => {
         const line = document.createElement("tr");
 
         const label = document.createElement("td");
@@ -802,11 +859,12 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 
         persistCustomMinutesPreference(durationMs / 60_000);
         await engine.start("timer", durationMs);
-        maybePlayTimerStartChirp();
+        maybePlaySessionStartChirp();
         return;
       }
 
       await engine.start("indefinite");
+      maybePlaySessionStartChirp();
     };
 
     const toggleStartStop = async () => {
@@ -857,9 +915,10 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
         }
 
         await engine.start("timer", durationMinutes * 60_000);
-        maybePlayTimerStartChirp();
+        maybePlaySessionStartChirp();
       } else {
         await engine.start("indefinite");
+        maybePlaySessionStartChirp();
       }
 
       setProfileFeedback(`Launched ${profile.name}.`, "success");
@@ -919,6 +978,11 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 
     settingsToggle.addEventListener("click", () => {
       setSettingsOpen(!settingsOpen);
+    });
+
+    eventLogToggle.addEventListener("click", () => {
+      eventLogExpanded = !eventLogExpanded;
+      renderEventLog();
     });
 
     beepAlertToggle.addEventListener("change", () => {
@@ -1239,6 +1303,15 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     color: color-mix(in oklab, var(--color-accent-100) 24%, var(--color-base-200));
   }
 
+  #awake-control-panel .awake-settings-title {
+    letter-spacing: 0.01em;
+  }
+
+  #awake-control-panel .awake-settings-section:first-child {
+    border-color: color-mix(in oklab, var(--color-accent-300) 45%, var(--color-base-700));
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-accent-400) 20%, transparent);
+  }
+
   #awake-control-panel :is(
       button,
       select,
@@ -1262,7 +1335,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
   }
 
   #awake-control-panel .awake-settings-drawer[data-open="true"] {
-    max-height: 2600px;
+    max-height: 3400px;
     opacity: 1;
     transform: translateY(0);
     pointer-events: auto;
