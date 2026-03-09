@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { detectBrowserName, detectWakeClientInfo } from "./clientInfo";
+import {
+  detectBrowserName,
+  detectWakeClientInfo,
+  isChromiumFamilyBrowser,
+} from "./clientInfo";
 
 describe("clientInfo", () => {
   it("detects Chromium-family browsers from userAgentData brands", () => {
@@ -38,6 +42,26 @@ describe("clientInfo", () => {
   it("returns unknown browser for empty or unsupported agents", () => {
     expect(detectBrowserName("")).toBe("Unknown browser");
     expect(detectBrowserName("SomeCustomAgent/1.0")).toBe("Unknown browser");
+  });
+
+  it("flags Chromium-family compatibility from user agent parsing", () => {
+    expect(
+      isChromiumFamilyBrowser(
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      ),
+    ).toBe(true);
+
+    expect(
+      isChromiumFamilyBrowser(
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15",
+      ),
+    ).toBe(false);
+
+    expect(
+      isChromiumFamilyBrowser(
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.3; rv:123.0) Gecko/20100101 Firefox/123.0",
+      ),
+    ).toBe(false);
   });
 
   it("detects machine label from platform and user agent", () => {

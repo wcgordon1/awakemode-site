@@ -1,3 +1,5 @@
+import { isChromiumFamilyBrowser } from "./clientInfo";
+
 export type WakeSupportStatus = "supported" | "unsupported" | "blocked";
 export type WakeSessionMode = "indefinite" | "timer";
 export type WakePlatform = "mac" | "windows" | "other";
@@ -194,7 +196,20 @@ function createBrowserEnvironment(): WakeSessionEnvironment {
         };
       };
 
-      return typeof nav.wakeLock?.request === "function";
+      const hasWakeLockApi = typeof nav.wakeLock?.request === "function";
+      if (!hasWakeLockApi) {
+        return false;
+      }
+
+      const browserAllowed = isChromiumFamilyBrowser(
+        nav.userAgent,
+        Array.isArray((nav as Navigator & { userAgentData?: { brands?: unknown } }).userAgentData?.brands)
+          ? ((nav as Navigator & { userAgentData?: { brands?: { brand: string; version?: string }[] } })
+              .userAgentData?.brands ?? null)
+          : null,
+      );
+
+      return browserAllowed;
     },
 
     async requestWakeLock() {

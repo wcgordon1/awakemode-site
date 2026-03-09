@@ -17,6 +17,24 @@ export interface WakeClientInfo {
   machineKey: WakePlatform;
 }
 
+export function isChromiumFamilyBrowserName(browserName: string): boolean {
+  return (
+    browserName === "Chrome" ||
+    browserName === "Edge" ||
+    browserName === "Brave" ||
+    browserName === "Arc" ||
+    browserName === "Opera" ||
+    browserName === "Chromium"
+  );
+}
+
+export function isChromiumFamilyBrowser(
+  userAgent?: string | null,
+  brands?: UserAgentBrand[] | null,
+): boolean {
+  return isChromiumFamilyBrowserName(detectBrowserName(userAgent, brands));
+}
+
 function detectMachine(platform = "", userAgent = ""): WakePlatform {
   const combined = `${platform} ${userAgent}`.toLowerCase();
 

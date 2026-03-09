@@ -508,7 +508,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     };
 
     const renderClientMetadata = (state) => {
-      const compatibility = state.supportStatus === "unsupported" ? "Not compatible" : "Compatible";
+      const compatibility = state.supportStatus === "unsupported" ? "Incompatible" : "Compatible";
       clientMetadata.textContent = `${clientInfo.browser} on ${clientInfo.machine} | ${compatibility}`;
       clientMetadata.setAttribute(
         "data-compatibility",
@@ -783,7 +783,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       if (state.supportStatus === "unsupported") {
         applyBadgeStatus("Unsupported");
         statusDetail.textContent =
-          "Screen Wake Lock is unavailable in this browser. Use Chromium for AwakeMode sessions.";
+          "Incompatible browser. Screen Wake Lock is unavailable here. Consider switching to Chrome.";
       } else if (state.isPaused && state.mode === "timer") {
         applyBadgeStatus("Paused");
         statusDetail.textContent = "Timer is paused. Resume to continue countdown.";
@@ -1406,6 +1406,14 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     color: var(--color-base-100);
     background: var(--color-base-900);
     box-shadow: none;
+  }
+
+  :global(#awake-control-panel #awake-primary-action:disabled) {
+    background: var(--color-base-800);
+    border-color: var(--color-base-700);
+    box-shadow: none;
+    color: var(--color-base-300);
+    opacity: 1;
   }
 
   #awake-profile-feedback[data-tone="error"] {
