@@ -1,0 +1,47 @@
+---
+// Assets
+import { Image } from "astro:assets";
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+const { title, url, description, pubDate, image, imageAlt } = {
+  url: "/blog/posts/" + Astro.props.post.slug,
+  title: Astro.props.post.data.title,
+  description: Astro.props.post.data.description,
+  pubDate: Astro.props.post.data.pubDate.toString().slice(10, 15),
+  image: Astro.props.post.data.image.url,
+  imageAlt: Astro.props.post.data.image.alt,
+};
+---
+
+<div
+  class="relative h-full border p-1 tilt-card rounded-3xl bg-gradient-to-tr from-base-950 to-base-700 border-base-800 shadow-massive"
+>
+  <a
+    href={url}
+    title={title}
+    aria-label={`Read more about ${title}`}
+    class="absolute inset-0"></a>
+  <article>
+    <div class="flex flex-col items-start justify-between w-full">
+      <Image
+        src={image}
+        alt={imageAlt || title}
+        width={image.width}
+        height={image.height}
+        loading="lazy"
+        class="w-full aspect-4/3 object-cover rounded-2xl"
+      />
+      <div class="p-8 text-pretty">
+        <Text tag="p" variant="textXS" class="text-base-400">
+          <time datetime={pubDate}> {pubDate}</time></Text
+        >
+        <Text tag="h3" variant="textSM" class="font-medium text-white mt-8"
+          >{title}</Text
+        >
+        <Text tag="p" variant="textSM" class="text-base-300 mt-2">
+          {description}
+        </Text>
+      </div>
+    </div>
+  </article>
+</div>

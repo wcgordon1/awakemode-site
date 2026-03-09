@@ -1,0 +1,87 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Data
+const palettes = [
+  {
+    title: "Accent",
+    swatches: [
+      { shade: "50", bg: "bg-accent-50" },
+      { shade: "100", bg: "bg-accent-100" },
+      { shade: "200", bg: "bg-accent-200" },
+      { shade: "300", bg: "bg-accent-300" },
+      { shade: "400", bg: "bg-accent-400" },
+      { shade: "500", bg: "bg-accent-500" },
+      { shade: "600", bg: "bg-accent-600" },
+      { shade: "700", bg: "bg-accent-700" },
+      { shade: "800", bg: "bg-accent-800" },
+      { shade: "900", bg: "bg-accent-900" },
+      {
+        shade: "950",
+        bg: "bg-accent-950",
+        extra: "outline outline-accent-900",
+      },
+    ],
+  },
+  {
+    title: "Base",
+    swatches: [
+      { shade: "50", bg: "bg-base-50" },
+      { shade: "100", bg: "bg-base-100" },
+      { shade: "200", bg: "bg-base-200" },
+      { shade: "300", bg: "bg-base-300" },
+      { shade: "400", bg: "bg-base-400" },
+      { shade: "500", bg: "bg-base-500" },
+      { shade: "600", bg: "bg-base-600" },
+      { shade: "700", bg: "bg-base-700" },
+      { shade: "800", bg: "bg-base-800" },
+      { shade: "900", bg: "bg-base-900" },
+      { shade: "950", bg: "bg-base-950", extra: "outline outline-base-900" },
+    ],
+  },
+];
+---
+
+<BaseLayout>
+  <section>
+    <Wrapper variant="standard" class="pb-12 pt-48">
+      <Text tag="h3" variant="displayMD" class="text-white"> Colors </Text>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+        {
+          palettes.map((palette) => (
+            <div class="flex flex-col gap-2">
+              <Text
+                tag="h3"
+                variant="textXS"
+                class="font-medium dark:text-white text-base-900 uppercase"
+              >
+                {palette.title}
+              </Text>
+              <div class="grid grid-cols-4 gap-1 gap-y-8 mt-2">
+                {palette.swatches.map((swatch) => (
+                  <div class="flex flex-col gap-2">
+                    <div
+                      class:list={[
+                        "size-full",
+                        "aspect-square",
+                        "rounded-xl",
+                        swatch.bg,
+                        swatch.extra,
+                      ]}
+                    />
+                    <span class="text-xs dark:text-base-400 text-base-500">
+                      {palette.title} {swatch.shade}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </Wrapper>
+  </section>
+</BaseLayout>

@@ -1,0 +1,47 @@
+---
+// Assets
+import Logo from "@/components/assets/Logo.astro";
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+
+const links = [
+  { label: "Overview", href: "/system/overview" },
+  { label: "Privacy", href: "/legal/privacy" },
+  { label: "Terms", href: "/legal/terms" },
+  { label: "Contact", href: "/contact" },
+];
+---
+
+<footer>
+  <Wrapper class="py-24 lg:text-center">
+    <a href="/">
+      <Logo
+        class="h-24 text-white ease-in-out transform lg:mx-auto hover:animate-spin"
+      />
+    </a>
+    <Text tag="p" variant="textSM" class="mt-12 text-base-400 text-balance">
+      AwakeMode keeps your Mac or PC awake while you need it.<br />
+      Browser-first, extension-powered.
+    </Text>
+    <nav
+      class="flex flex-col mt-8 gap-y-2 lg:gap-8 lg:justify-center md:flex-row"
+    >
+      {
+        links.map((link) => (
+          <a
+            class="relative -my-2 -mx-3 rounded-lg px-3 py-2 text-sm text-base-300 transition-colors delay-150 hover:text-white hover:delay-[0ms] hover:bg-base-900"
+            href={link.href}
+          >
+            <span class="relative z-10">{link.label}</span>
+          </a>
+        ))
+      }
+    </nav>
+    <div class="pb-12 mt-24 lg:mx-auto lg:text-center border-base-800">
+      <Text tag="p" variant="textSM" class="text-base-300">
+        © Copyright <span>2026</span>. AwakeMode. All rights reserved.
+      </Text>
+    </div>
+  </Wrapper>
+</footer>

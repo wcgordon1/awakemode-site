@@ -1,0 +1,92 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+---
+
+<BaseLayout hideNav={true} hideFooter={true}>
+  <section class="relative overflow-hidden">
+    <Wrapper
+      variant="standard"
+      class="flex flex-col lg:h-dvh items-center justify-center"
+    >
+      <div class="w-full max-w-sm mx-auto">
+        <div class="overflow-hidden">
+          <Text
+            data-aos="fade-up"
+            data-aos-duration="1500"
+            tag="h1"
+            variant="displayMD"
+            class="text-white font-display"
+          >
+            Contact AwakeMode
+          </Text>
+        </div>
+        <form>
+          <div class="mt-12 space-y-4">
+            <div>
+              <label for="name" class="block text-sm font-medium text-white"
+                >First name</label
+              >
+              <input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="Alex"
+                aria-placeholder="First name"
+                class="block w-full h-12 px-3 py-2 mt-2 border rounded-md appearance-none bg-base-900 border-base-800 focus:bg-base-900 focus:border-accent-300 focus:outline-none focus:ring-accent-300 placeholder-base-500 sm:text-sm text-accent-300 text-lime"
+              />
+            </div>
+            <div>
+              <label for="company" class="block text-sm font-medium text-white"
+                >Team or company</label
+              >
+              <input
+                id="company"
+                name="company"
+                type="text"
+                placeholder="Acme Studio"
+                aria-placeholder="Company name"
+                class="block w-full h-12 px-3 py-2 mt-2 border rounded-md appearance-none bg-base-900 border-base-800 focus:bg-base-900 focus:border-accent-300 focus:outline-none focus:ring-accent-300 placeholder-base-500 sm:text-sm text-accent-300 text-lime"
+              />
+            </div>
+            <div>
+              <label for="email" class="block text-sm font-medium text-white"
+                >Email</label
+              >
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="off"
+                placeholder="email@example.com"
+                aria-placeholder="Your email"
+                class="block w-full h-12 px-3 py-2 mt-2 border rounded-md appearance-none bg-base-900 border-base-800 focus:bg-base-900 focus:border-accent-300 focus:outline-none focus:ring-accent-300 placeholder-base-500 sm:text-sm text-accent-300 text-lime"
+              />
+            </div>
+            <div>
+              <label for="message" class="block text-sm font-medium text-white"
+                >How can we help?</label
+              >
+              <div class="mt-1">
+                <textarea
+                  id="message"
+                  name="message"
+                  placeholder="Tell us about your wake-session needs"
+                  aria-placeholder="Project details"
+                  rows="4"
+                  class="block w-full px-3 py-2 mt-2 border rounded-md appearance-none bg-base-900 border-base-800 focus:bg-base-900 focus:border-accent-300 focus:outline-none focus:ring-accent-300 placeholder-base-500 sm:text-sm text-accent-300 text-lime"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4">
+            <Button size="lg" variant="accent" class="w-full">Send message</Button>
+          </div>
+        </form>
+      </div>
+    </Wrapper>
+  </section>
+</BaseLayout>

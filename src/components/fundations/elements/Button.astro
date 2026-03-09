@@ -1,0 +1,126 @@
+---
+const {
+  variant,
+  size,
+  onlyIconSize,
+  iconOnly = false,
+  gap,
+  isLink,
+  href,
+  class: className,
+  ...rest
+} = Astro.props;
+// Variant styles
+const defaultClass = [
+  "text-accent-900",
+  "bg-accent-100 hover:bg-accent-200",
+  "focus:outline-accent-200",
+  "outline-accent-100",
+];
+const accentClass = [
+  "text-accent-950",
+  "bg-linear-to-tr/oklch from-accent-500 via-accent-400 to-accent-300 hover:to-accent-400 ",
+  "focus:outline-accent-300",
+  "outline-accent-400",
+];
+const mutedClass = [
+  "text-white",
+  "hover:text-accent-300",
+  "bg-base-900 ",
+  "hover:bg-base-800",
+  "focus:outline-base-700",
+  "outline-base-800",
+];
+const variantClass = {
+  default: defaultClass,
+  accent: accentClass,
+  muted: mutedClass,
+  none: [],
+};
+// Size maps
+const sizes = {
+  xxs: ["h-7.5", "px-4", "py-2", "text-xs", " rounded-lg"],
+  xs: ["h-8", "px-6", "py-2", "text-xs", "rounded-lg"],
+  sm: ["h-9", "px-6", "py-2", "text-sm", "rounded-lg"],
+  base: ["h-10", "px-8", "py-3", "text-base", "rounded-xl"],
+  md: ["h-11", "px-8", "py-3", "text-md", "rounded-xl"],
+  lg: ["h-12", "px-8", "py-3", "text-lg", "rounded-xl"],
+  xl: ["h-14", "px-12", "py-3", "text-xl", "rounded-xl"],
+};
+const iconSizes = {
+  xxs: ["size-7.5", "py-2", "text-xs", " rounded-lg"],
+  xs: ["size-8", "text-xs", "rounded-lg"],
+  sm: ["size-9", "text-sm", "rounded-lg"],
+  base: ["size-10", "text-base", "rounded-xl"],
+  md: ["size-11", "text-md", "rounded-xl"],
+  lg: ["size-12", "text-lg", "rounded-xl"],
+  xl: ["size-14", "text-xl", "rounded-xl"],
+};
+// Gaps
+const gapMap = {
+  xs: ["gap-2"],
+  sm: ["gap-4"],
+  base: ["gap-8"],
+  md: ["gap-10"],
+  lg: ["gap-12"],
+};
+const additionalClasses = className ? className.split(" ") : [];
+const iconSizeKey = onlyIconSize || size;
+const sizeClass = iconOnly ? iconSizes[iconSizeKey] || [] : sizes[size] || [];
+const gapClass = !iconOnly && gap ? gapMap[gap] || [] : [];
+const renderAsLink = (isLink ?? false) || Boolean(href);
+const baseClass = [
+  "flex",
+  "relative",
+  "transition",
+  "text-center",
+  "font-medium",
+  "items-center",
+  "shadow-massive",
+  "justify-center",
+  "duration-300",
+  "ease-in-out",
+  "transition-all",
+  "hover:shadow-none",
+  "outline",
+  "focus:outline-offset-4",
+  "oultine-offset-base-900",
+  "focus-visible:outline-none",
+  "focus:outline-2",
+];
+const classes = [
+  ...baseClass,
+  ...(variantClass[variant] || []),
+  ...sizeClass,
+  ...gapClass,
+  ...additionalClasses,
+];
+---
+
+{
+  renderAsLink ? (
+    <a href={href} class:list={classes} {...rest}>
+      {iconOnly ? (
+        <slot name="icon" />
+      ) : (
+        <>
+          <slot name="left-icon" />
+          <slot />
+          <slot name="right-icon" />
+        </>
+      )}
+    </a>
+  ) : (
+    <button class:list={classes} {...rest}>
+      {iconOnly ? (
+        <slot name="icon" />
+      ) : (
+        <>
+          <slot name="left-icon" />
+          <slot />
+          <slot name="right-icon" />
+        </>
+      )}
+    </button>
+  )
+}

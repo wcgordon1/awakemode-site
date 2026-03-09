@@ -1,0 +1,47 @@
+---
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Assets
+import { Image } from "astro:assets";
+// import the logos
+import logo1 from "@/images/brands/1.svg";
+import logo2 from "@/images/brands/2.svg";
+import logo3 from "@/images/brands/3.svg";
+const logos = [
+  { src: logo1, alt: "Partner logo 1" },
+  { src: logo2, alt: "Partner logo 2" },
+  { src: logo3, alt: "Partner logo 3" },
+];
+---
+
+<section>
+  <Wrapper variant="standard" class="py-24">
+    <div
+      class="grid grid-cols-1 py-12 items-center lg:grid-cols-4 border-y md:grid-cols-2 border-base-800 lg:gap-24"
+    >
+      <div class="col-span-full lg:col-span-1 lg:max-w-none lg:mr-auto mx-auto">
+        <Text tag="p" variant="textXS" class="text-base-300 text-balance">
+          Teams and creators using AwakeMode-style keep-awake workflows
+        </Text>
+      </div>
+      <div class="mt-12 lg:mt-0 md:col-span-3">
+        <div
+          class="flex flex-col md:flex-row items-center justify-between gap-2"
+        >
+          {
+            logos.map((logo) => (
+              <Image
+                width={200}
+                height={100}
+                class="h-12 lg:h-8 "
+                src={logo.src}
+                alt={logo.alt}
+              />
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </Wrapper>
+</section>

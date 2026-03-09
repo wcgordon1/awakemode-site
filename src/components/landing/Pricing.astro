@@ -1,0 +1,156 @@
+---
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+const pricingPlans = [
+  {
+    title: "Starter",
+    price: "$0",
+    description: "Browser wake sessions with basic timer controls.",
+    buttonLink: "/sign-up",
+    features: [
+      { name: "Screen wake lock (Chromium)", available: true },
+      { name: "Indefinite and countdown modes", available: true },
+      { name: "Local preset storage", available: true },
+      { name: "Session history", available: false },
+      { name: "Chrome extension controls", available: false },
+      { name: "Priority support", available: false },
+    ],
+    classes:
+      "shadow-big flex flex-col p-8 rounded-3xl bg-gradient-to-tr from-indigo-500 via-indigo-400 to-indigo-300",
+    textClasses: "text-base-950",
+    buttonVariant: "muted",
+  },
+  {
+    title: "Pro",
+    price: "$4/mo",
+    description: "For users who rely on keep-awake sessions every day.",
+    buttonLink: "/sign-up",
+    features: [
+      { name: "Everything in Starter", available: true },
+      { name: "Advanced timer presets", available: true },
+      { name: "Session history", available: true },
+      { name: "Chrome extension controls", available: true },
+      { name: "System/display keep-awake modes", available: true },
+      { name: "Priority support", available: false },
+    ],
+    classes:
+      "flex flex-col p-8 rounded-3xl bg-base-900 ring-1 ring-base-800 shadow-big",
+    textClasses: "text-white",
+    buttonVariant: "accent",
+  },
+  {
+    title: "Team",
+    price: "$19/mo",
+    description: "Shared defaults and roll-out controls for distributed teams.",
+    buttonLink: "/contact",
+    features: [
+      { name: "Everything in Pro", available: true },
+      { name: "Team policy presets", available: true },
+      { name: "Seat management", available: true },
+      { name: "Centralized support", available: true },
+      { name: "SLA options", available: true },
+      { name: "Priority support", available: true },
+    ],
+    classes:
+      "flex flex-col p-8 rounded-3xl bg-base-900 ring-1 ring-base-800 shadow-big",
+    textClasses: "text-white",
+    buttonVariant: "accent",
+  },
+];
+---
+
+<section id="pricing" class="scroll-mt-20">
+  <Wrapper variant="standard" class="py-24">
+    <div
+      class="lg:text-center max-w-xl lg:mx-auto"
+      data-aos="fade-up"
+      data-aos-duration="2000"
+    >
+      <Text tag="h3" variant="displayXL" class="text-white font-display"
+        >AwakeMode plans</Text
+      >
+      <Text tag="p" variant="textBase" class="text-base-300 mt-4"
+        >Start free and upgrade when you need extension power.</Text
+      >
+    </div>
+
+    <div class="mt-24 grid md:grid-cols-2 lg:grid-cols-3 gap-2">
+      {
+        pricingPlans.map((plan) => (
+          <div class={plan.classes}>
+            <div>
+              <Text
+                tag="p"
+                variant="textXL"
+                class={`flex items-baseline ${plan.textClasses}`}
+              >
+                {plan.title}
+              </Text>
+              <div class="pb-4 mt-8 border-b border-white/20">
+                <div class="flex flex-col items-baseline">
+                  <Text
+                    tag="p"
+                    variant="displayMD"
+                    class={`font-display font-medium  ${plan.textClasses}`}
+                  >
+                    {plan.price}
+                  </Text>
+                  <Text
+                    tag="p"
+                    variant="textBase"
+                    class={`mt-3 ${plan.textClasses}`}
+                  >
+                    {plan.description}
+                  </Text>
+                </div>
+              </div>
+              <div class="mt-8">
+                <Button
+                  size="lg"
+                  variant={plan.buttonVariant}
+                  href={plan.buttonLink}
+                  title={plan.title}
+                  aria-label={plan.title}
+                  class="w-full"
+                >
+                  Choose plan
+                </Button>
+              </div>
+              <ul class="order-last mt-10 flex flex-col gap-y-3 text-sm">
+                {plan.features.map((feature) => (
+                  <li
+                    class={`flex items-center gap-2 ${feature.available ? plan.textClasses : "opacity-50 text-white"}`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class={`icon icon-tabler icon-tabler-circle-${feature.available ? "check" : "x"}`}
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      stroke-width="1"
+                      stroke="currentColor"
+                      fill="none"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                      <circle cx="12" cy="12" r="9" />
+                      {feature.available ? (
+                        <path d="M9 12l2 2l4 -4" />
+                      ) : (
+                        <path d="M10 10l4 4m0 -4l-4 4" />
+                      )}
+                    </svg>
+                    {feature.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </Wrapper>
+</section>

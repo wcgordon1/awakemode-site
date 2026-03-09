@@ -1,0 +1,36 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Components
+import EntriesOne from "@/components/blog/BlogCard.astro";
+// Content
+import { getCollection } from "astro:content";
+const allPosts = (await getCollection("posts")).sort(
+  (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()
+);
+---
+
+<BaseLayout>
+  <section class="relative overflow-hidden">
+    <Wrapper variant="standard" class="pb-12 pt-48">
+      <div
+        class="text-center max-w-xl mx-auto"
+        data-aos="fade-down"
+        data-aos-duration="3000"
+      >
+        <Text tag="h1" variant="displayXL" class="text-white font-display">
+          AwakeMode Journal
+        </Text>
+        <Text tag="p" variant="textBase" class="text-base-300 mt-4">
+          Product updates and practical guides for reliable keep-awake workflows.
+        </Text>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-24">
+        {allPosts.map((post) => <EntriesOne post={post} />)}
+      </div>
+    </Wrapper>
+  </section>
+</BaseLayout>

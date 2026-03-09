@@ -1,0 +1,109 @@
+---
+// Assets
+import { Image } from "astro:assets";
+import Avatar1 from "@/images/avatars/1.jpeg";
+import Avatar2 from "@/images/avatars/2.jpeg";
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+const testimonials = [
+  {
+    name: "Liam Carter",
+    role: "IT Operations Lead",
+    testimonial:
+      "AwakeMode replaced our scattered terminal scripts. Sessions are easier to start, monitor, and end cleanly.",
+    imgSrc: null,
+    imgAlt: null,
+    classes: "hidden lg:block",
+  },
+  {
+    name: "Sofia Andersson",
+    role: "Product Designer",
+    testimonial:
+      "When I run long exports overnight, AwakeMode keeps my machine active without me babysitting it.",
+    imgSrc: Avatar1,
+    imgAlt: "Sofia Andersson",
+    classes: "lg:col-span-2",
+  },
+  {
+    name: "Daniel Fischer",
+    role: "QA Automation Engineer",
+    testimonial:
+      "The extension mode gets us closest to desktop app behavior. It has been reliable in daily test runs.",
+    imgSrc: Avatar2,
+    imgAlt: "Daniel Fischer",
+    classes: "lg:col-span-2",
+  },
+  {
+    name: "Emma Larsen",
+    role: "Freelance Video Editor",
+    testimonial:
+      "Simple UI, fast start, and timer presets. Exactly what I wanted from an Amphetamine-style web tool.",
+    imgSrc: null,
+    imgAlt: null,
+    classes: "hidden lg:block",
+  },
+];
+---
+<section class="overflow-hidden">
+  <Wrapper class="py-12 lg:py-24">
+    <div class="text-center max-w-3xl lg:mx-auto">
+      <Text tag="h3" variant="displayMD" class="text-white font-display">
+        Trusted by people who run long sessions
+        <span class="md:block text-base-400"
+          >without allowing sleep interruptions</span
+        >
+      </Text>
+    </div>
+    <ul
+      role="list"
+      class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 mt-12"
+    >
+      {
+        testimonials.map((testimonial) => (
+          <li class={`${testimonial.classes} space-y-4`}>
+            <figure class="h-full p-4 lg:p-8 rounded-3xl bg-gradient-to-tr from-base-950 to-base-700 border border-base-800 shadow-massive">
+              <div class="h-full group flex flex-col justify-between">
+                <div
+                  class={`flex gap-4 pb-6 ${testimonial.imgSrc ? "flex-col md:flex-row lg:items-center" : ""}`}
+                >
+                  {testimonial.imgSrc && (
+                    <div class="overflow-hidden lg:p-2">
+                      <Image
+                        width={200}
+                        height={200}
+                        alt={testimonial.imgAlt}
+                        src={testimonial.imgSrc}
+                        class="object-cover rounded-full h-20 w-20 grayscale shrink-0"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <span
+                      class={`font-medium leading-6 text-white ${testimonial.imgSrc ? "text-sm lg:text-lg" : "text-sm"}`}
+                    >
+                      {testimonial.name}
+                    </span>
+                    <a
+                      class={`text-base-300 block group-hover:text-accent-300 ${testimonial.imgSrc ? "text-sm lg:text-lg" : "text-sm"}`}
+                      href="/contact"
+                    >
+                      {testimonial.role}
+                    </a>
+                  </div>
+                </div>
+                <blockquote class="mt-2">
+                  <p
+                    class={`text-base-300 ${testimonial.imgSrc ? "text-sm lg:text-lg" : "text-sm"}`}
+                  >
+                    {testimonial.testimonial}
+                  </p>
+                </blockquote>
+              </div>
+            </figure>
+          </li>
+        ))
+      }
+    </ul>
+  </Wrapper>
+</section>

@@ -1,0 +1,124 @@
+---
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Define the steps with their details
+const steps = [
+  {
+    id: 1,
+    title: "Choose mode",
+    description: "Pick an always-on session or set a countdown timer.",
+    aosDuration: "500",
+  },
+  {
+    id: 2,
+    title: "Start keep-awake",
+    description: "AwakeMode requests wake lock and confirms active status.",
+    aosDuration: "1000",
+  },
+  {
+    id: 3,
+    title: "Stay productive",
+    description: "Run exports, screen shares, downloads, or long tasks without sleep.",
+    aosDuration: "1500",
+  },
+  {
+    id: 4,
+    title: "Stop cleanly",
+    description: "End manually or let your timer release wake lock automatically.",
+    aosDuration: "2500",
+  },
+];
+const features = [
+  {
+    title: "Chromium first",
+    description:
+      "Built and tested for Chrome, Edge, Brave, Arc, and other Chromium browsers.",
+  },
+  {
+    title: "Extension ready",
+    description:
+      "Upgrade to the Chrome extension for stronger system-level keep-awake behavior.",
+  },
+  {
+    title: "Session presets",
+    description:
+      "Save your favorite timer lengths and quickly restart common workflows.",
+  },
+];
+---
+
+<section id="how-it-works" class="overflow-hidden relative scroll-mt-24">
+  <Wrapper variant="standard" class="py-24">
+    <div data-aos="fade-up" data-aos-duration="2000">
+      <Text
+        tag="h2"
+        variant="displayMD"
+        class="text-white font-display text-center"
+      >
+        How AwakeMode works <span class="md:block text-base-500"
+          >in four simple steps</span
+        >
+      </Text>
+    </div>
+    <div class="relative flex flex-wrap mt-24">
+      <div class="absolute top-8 left-0 right-0 hidden lg:block h-[1px] -z-1">
+        <div
+          class="h-[1px] w-full bg-accent-300"
+          data-aos="fade-left"
+          data-aos-duration="3000"
+        >
+          &zwnj;
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-6 lg:grid-cols-4 relative">
+        {
+          steps.map((step) => (
+            <div class="w-full pb-4 border-b border-base-800">
+              <span
+                data-aos="fade-down"
+                data-aos-duration={step.aosDuration}
+                class="flex items-center justify-center size-12 mb-5 lg:mb-16 text-accent-300 rounded-xl border bg-gradient-to-tr from-base-950 to-base-700 border-base-800 shadow-massive "
+              >
+                {step.id}
+              </span>
+              <div>
+                <Text
+                  tag="h3"
+                  variant="textLG"
+                  class="mt-12  font-medium leading-6 text-white"
+                >
+                  {step.title}
+                </Text>
+                <Text tag="p" variant="textBase" class="mt-4  text-base-400">
+                  {step.description}
+                </Text>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+
+    <div
+      class="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-x-6 mt-24 lg:text-center"
+    >
+      {
+        features.map((feature) => (
+          <div class="pb-4 border-b border-base-800">
+            <Text
+              tag="h3"
+              variant="textLG"
+              class=" font-medium leading-6 text-white"
+            >
+              {feature.title}
+            </Text>
+            <Text tag="p" variant="textBase" class="mt-4 text-base-400">
+              {feature.description}
+            </Text>
+          </div>
+        ))
+      }
+    </div>
+  </Wrapper>
+</section>

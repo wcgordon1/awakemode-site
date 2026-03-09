@@ -1,0 +1,46 @@
+---
+// Assets
+import { Image } from "astro:assets";
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+const { client, url, description, launchDate, work, logo } = {
+  url: "/work/" + Astro.props.post.slug,
+  client: Astro.props.post.data.client,
+  description: Astro.props.post.data.description,
+  launchDate: Astro.props.post.data.launchDate.toString().slice(10, 15),
+  work: Astro.props.post.data.work,
+  logo: Astro.props.post.data.logo.url,
+};
+---
+
+<div
+  class="relative h-full p-8 border tilt-card rounded-3xl bg-gradient-to-tr from-base-950 to-base-700 border-base-800 shadow-massive"
+>
+  <div class="flex flex-col h-full group">
+    <a
+      href={url}
+      title={client}
+      aria-label={`Read more about ${client}`}
+      class="absolute inset-0"></a>
+    <Image
+      src={logo}
+      alt={client}
+      width={200}
+      height={200}
+      class="object-cover shrink-0 size-16"
+    />
+    <blockquote class="relative mt-24 space-y-3">
+      <span class="text-xs text-base-400">{launchDate}</span>
+      <Text
+        tag="h3"
+        variant="textBase"
+        class="mt-8 font-medium leading-6 text-white"
+      >
+        {client} / <span class="text-base-300"> {work}</span>
+      </Text>
+      <Text tag="p" variant="textBase" class="text-base-300 line-clamp-3">
+        {description}
+      </Text>
+    </blockquote>
+  </div>
+</div>

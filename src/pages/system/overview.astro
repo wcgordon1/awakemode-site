@@ -1,0 +1,131 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Data array
+const pageData = [
+  {
+    sectionTitle: "All pages",
+    categories: [
+      {
+        title: "Main",
+        links: [
+          { label: "Landing", url: "/" },
+          { label: "404", url: "/404" },
+        ],
+      },
+      {
+        title: "Forms",
+        links: [
+          { label: "Sign in", url: "/sign-in" },
+          { label: "Sign up", url: "/sign-up" },
+          { label: "Contact", url: "/contact" },
+        ],
+      },
+      {
+        title: "System Pages",
+        links: [
+          { label: "Links", url: "/system/links" },
+          { label: "Colors", url: "/system/colors" },
+          { label: "Buttons", url: "/system/buttons" },
+          { label: "Typography", url: "/system/typography" },
+          {
+            label: "License",
+            url: "/legal/terms",
+          },
+          {
+            label: "Documentation",
+            url: "/system/overview",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    sectionTitle: "Content collections",
+    categories: [
+      {
+        title: "Work",
+        links: [
+          { label: "Home", url: "/work" },
+          { label: "Details", url: "/work/1" },
+        ],
+      },
+      {
+        title: "Services",
+        links: [{ label: "Services details", url: "/services/web-dev" }],
+      },
+      {
+        title: "Teams",
+        links: [
+          { label: "Home", url: "/team" },
+          { label: "Details", url: "/team/1" },
+        ],
+      },
+      {
+        title: "Blog Pages",
+        links: [
+          { label: "Home", url: "/blog" },
+          { label: "Details", url: "/blog/posts/1" },
+          { label: "Tag index", url: "/blog/tags" },
+          { label: "Tag Category", url: "/blog/tags/svg" },
+          { label: "RSS", url: "/rss.xml" },
+        ],
+      },
+      {
+        title: "Legal",
+        links: [{ label: "Details", url: "/legal/terms" }],
+      },
+    ],
+  },
+];
+---
+
+<BaseLayout>
+  <section>
+    <Wrapper variant="standard">
+      <div data-aos="fade-up" data-aos-duration="2000" class="max-w-xl">
+        <Text
+          tag="h1"
+          variant="displayMD"
+          class="text-white font-display text-balance">Overview</Text
+        >
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-12 upppercase">
+        {
+          pageData.map((section) => (
+            <div class="py-8 ">
+              <Text tag="p" variant="textBase" class="text-white">
+                {section.sectionTitle}
+              </Text>
+              <div class="grid grid-cols-1 pt-4 mt-4 border-t md:grid-cols-3  gap-y-8 border-base-800">
+                {section.categories.map((category) => (
+                  <div class="flex flex-col space-y-2">
+                    <Text
+                      tag="h3"
+                      variant="textBase"
+                      class="text-white uppercase "
+                    >
+                      {category.title}
+                    </Text>
+                    {category.links.map((link) => (
+                      <Text
+                        tag="a"
+                        variant="textSM"
+                        class="text-base-400 hover:text-white"
+                        href={link.url}
+                      >
+                        {link.label}
+                      </Text>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </Wrapper>
+  </section>
+</BaseLayout>

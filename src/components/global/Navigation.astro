@@ -1,0 +1,126 @@
+---
+// Assets
+import Logo from "@/components/assets/Logo.astro";
+// Fundations
+import Button from "@/components/fundations/elements/Button.astro";
+// Icons
+import Menu from "@/components/fundations/icons/Menu.astro";
+
+const navLinks = [
+  { label: "How it works", href: "/#how-it-works" },
+  { label: "Features", href: "/#services" },
+  { label: "Use cases", href: "/work" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "Blog", href: "/blog" },
+  { label: "Docs", href: "/system/overview" },
+];
+---
+
+<div id="nav-wrapper" class="fixed inset-x-0 z-50 top-2 lg:top-8">
+  <div
+    id="nav-container"
+    class="px-8 mx-auto transition-all duration-1000 ease-in-out transform lg:max-w-xl"
+  >
+    <div
+      class="relative flex flex-col w-full p-2 mx-auto border backdrop-blur-xl backdrop-filter bg-base-900/60 border-base-800 md:flex-row md:items-center md:justify-between lg:rounded-2xl rounded-xl shadow-massive"
+    >
+      <div class="flex flex-row items-center justify-between md:justify-start">
+        <a href="/" aria-label="Homepage">
+          <span class="sr-only">Home</span>
+          <Logo class="h-8 text-white" />
+        </a>
+
+        <Button
+          iconOnly
+          size="sm"
+          variant="muted"
+          id="nav-toggle"
+          class="md:hidden"
+          aria-label="Toggle navigation menu"
+        >
+          <Menu slot="icon" size="base" />
+        </Button>
+      </div><nav
+        id="nav-menu"
+        class="flex-col justify-center flex-grow hidden py-12 md:flex-row md:flex md:items-end md:py-0"
+      >
+        <ul
+          class="items-center justify-center text-center list-none gap-y-6 md:gap-3 flex flex-col md:flex-row md:ml-auto md:text-left"
+        >
+          {
+            navLinks.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-sm text-white hover:text-accent-300"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+          <li class="flex justify-center">
+            <Button size="sm" variant="accent" href="/sign-up">Start Session</Button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const navContainer = document.getElementById("nav-container");
+    const navToggle = document.getElementById("nav-toggle");
+    const navMenu = document.getElementById("nav-menu");
+    const iconMenu = document.getElementById("icon-menu");
+    const iconClose = document.getElementById("icon-close");
+
+    let isOpen = false;
+
+    // Handle scroll behavior
+    window.addEventListener("scroll", () => {
+      const atTop = window.pageYOffset <= 50;
+      if (navContainer) {
+        if (atTop) {
+          navContainer.classList.remove("max-w-2xl");
+          navContainer.classList.add("lg:max-w-xl");
+        } else {
+          navContainer.classList.add("max-w-2xl");
+          navContainer.classList.remove("lg:max-w-xl");
+        }
+      }
+    });
+
+    // Handle mobile menu toggle
+    if (navToggle) {
+      navToggle.addEventListener("click", () => {
+        isOpen = !isOpen;
+
+        if (navMenu) {
+          if (isOpen) {
+            navMenu.classList.remove("hidden");
+            navMenu.classList.add("flex");
+          } else {
+            navMenu.classList.add("hidden");
+            navMenu.classList.remove("flex");
+          }
+        }
+
+        if (iconMenu && iconClose) {
+          if (isOpen) {
+            iconMenu.classList.add("hidden");
+            iconMenu.classList.remove("inline-flex");
+            iconClose.classList.remove("hidden");
+            iconClose.classList.add("inline-flex");
+          } else {
+            iconMenu.classList.remove("hidden");
+            iconMenu.classList.add("inline-flex");
+            iconClose.classList.add("hidden");
+            iconClose.classList.remove("inline-flex");
+          }
+        }
+      });
+    }
+  });
+</script>

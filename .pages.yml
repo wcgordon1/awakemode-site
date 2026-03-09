@@ -1,0 +1,133 @@
+# .pages.yml — Pages CMS config for this project (images in src/images)
+
+media:
+  name: images
+  label: Images
+  input: src/images
+  output: src/images
+  path: ""
+  extensions: [png, jpg, jpeg, webp, svg]
+
+settings:
+  content:
+    merge: true
+
+content:
+  # TEAM
+  - name: team
+    label: Team
+    type: collection
+    path: src/content/team
+    filename: "{year}{month}{day}-{hour}{minute}{second}.md"
+    view:
+      primary: name
+      fields: [name, role]
+      sort: [name]
+    fields:
+      - { name: name,  label: Name,  type: string, required: true }
+      - { name: role,  label: Role,  type: string }
+      - { name: intro, label: Intro, type: text }
+      - name: education
+        label: Education
+        type: string
+        list: true
+      - name: experience
+        label: Experience
+        type: string
+        list: true
+      - name: avatar
+        label: Avatar
+        type: object
+        fields:
+          - name: url
+            label: Image
+            type: image
+            options: { media: images }
+          - { name: alt, label: Alt text, type: string }
+      - { name: body, label: Body, type: rich-text }
+
+  # SERVICES
+  - name: services
+    label: Services
+    type: collection
+    path: src/content/services
+    filename: "{year}{month}{day}-{hour}{minute}{second}.md"
+    view:
+      primary: service
+      fields: [service]
+      sort: [service]
+    fields:
+      - { name: service,     label: Service,     type: string, required: true }
+      - { name: description, label: Description, type: text }
+      - { name: body,        label: Body,        type: rich-text }
+
+  # WORK
+  - name: work
+    label: Work
+    type: collection
+    path: src/content/work
+    filename: "{year}{month}{day}-{hour}{minute}{second}.md"
+    view:
+      primary: work
+      fields: [work, client, launchDate]
+      sort: [launchDate]
+    fields:
+      - { name: launchDate, label: Launch Date, type: date }
+      - { name: client,     label: Client,      type: string }
+      - { name: work,       label: Work,        type: string, required: true }
+      - { name: description,label: Description, type: text }
+      - name: logo
+        label: Logo
+        type: object
+        fields:
+          - name: url
+            label: Image
+            type: image
+            options: { media: images }
+          - { name: alt, label: Alt text, type: string }
+      - { name: body, label: Body, type: rich-text }
+
+  # INFO PAGES
+  - name: infopages
+    label: Info Pages
+    type: collection
+    path: src/content/infopages
+    filename: "{year}{month}{day}-{hour}{minute}{second}.md"
+    view:
+      primary: page
+      fields: [page, pubDate]
+      sort: [page]
+    fields:
+      - { name: page,    label: Page,     type: string, required: true }
+      - { name: pubDate, label: Pub Date, type: date }
+      - { name: body,    label: Body,     type: rich-text }
+
+  # POSTS
+  - name: posts
+    label: Posts
+    type: collection
+    path: src/content/posts
+    filename: "{year}{month}{day}-{hour}{minute}{second}.md"
+    view:
+      primary: title
+      fields: [title, pubDate, author]
+      sort: [pubDate]
+      default:
+        sort: pubDate
+        order: desc
+    fields:
+      - { name: title,       label: Title,       type: string, required: true }
+      - { name: pubDate,     label: Pub Date,    type: date }
+      - { name: description, label: Description, type: text }
+      - { name: author,      label: Author,      type: string }
+      - name: image
+        label: Cover Image
+        type: object
+        fields:
+          - name: url
+            label: Image
+            type: image
+            options: { media: images }
+          - { name: alt, label: Alt text, type: string }
+      - { name: tags, label: Tags, type: string, list: true }
+      - { name: body, label: Body, type: rich-text }

@@ -1,0 +1,44 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+---
+
+<BaseLayout hideNav={true} hideFooter={true}>
+  <section class="relative overflow-hidden">
+    <Wrapper
+      variant="standard"
+      class="flex flex-col lg:h-dvh items-center justify-center"
+    >
+      <div
+        class="text-center mx-auto"
+        data-aos="fade-down"
+        data-aos-duration="3000"
+      >
+        <span
+          data-aos="fade-down"
+          data-aos-duration="2500"
+          class="flex items-center justify-center size-24 text-accent-300 rounded-xl border bg-gradient-to-tr mx-auto from-base-950 to-base-700 border-base-800 shadow-massive text-2xl"
+          >404</span
+        >
+        <Text
+          tag="h1"
+          variant="displayMD"
+          class="text-4xl mt-12 lg:text-6xl text-white font-display"
+        >
+          This page is asleep<span class="md:block text-base-400"
+            >but the rest of AwakeMode is awake.</span
+          >
+        </Text>
+        <Text tag="p" variant="textBase" class="text-base-300 mt-4">
+          The URL may have changed.
+        </Text>
+        <div class="flex flex-wrap justify-center gap-3 mt-12">
+          <Button href="/" size="lg" variant="accent">Go back home</Button>
+        </div>
+      </div>
+    </Wrapper>
+  </section>
+</BaseLayout>

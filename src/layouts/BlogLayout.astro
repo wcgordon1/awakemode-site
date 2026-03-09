@@ -1,0 +1,61 @@
+---
+// Assets
+import { Image } from "astro:assets";
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+const { frontmatter } = Astro.props;
+---
+
+<BaseLayout>
+  <section>
+    <Wrapper variant="standard" class="pb-12 pt-48">
+      <Wrapper variant="narrow" class="text-balance text-center mx-auto">
+        <Text tag="p" variant="textSM" class="text-white">
+          {frontmatter.pubDate.toString().slice(0, 10)}
+        </Text>
+        <Text
+          tag="h1"
+          variant="displayXL"
+          class="text-white mt-12 font-display"
+        >
+          {frontmatter.title}
+        </Text>
+        <Text
+          tag="p"
+          variant="textBase"
+          class="text-base-300 mt-4 text-balance"
+        >
+          {frontmatter.description}
+        </Text>
+        <div class="flex flex-wrap gap-4 mt-6 justify-center">
+          {
+            frontmatter.tags.map((tag) => (
+              <a
+                class="capitalize text-base-400 hover:text-white text-sm"
+                href={`/blog/tags/${tag}`}
+              >
+                {tag}
+              </a>
+            ))
+          }
+        </div>
+      </Wrapper>
+      <Image
+        width={800}
+        height={700}
+        src={frontmatter.image.url}
+        alt={frontmatter.image.alt}
+        loading="lazy"
+        decoding="async"
+        class="object-cover rounded-3xl bg-base-900 mt-4 shadow-massive aspect-4/2 w-full mt-12"
+      />
+
+      <Wrapper variant="prose" class="max-w-xl mx-auto mt-12">
+        <slot />
+      </Wrapper>
+    </Wrapper>
+  </section>
+</BaseLayout>

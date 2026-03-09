@@ -1,0 +1,37 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Components
+import TeamCard from "@/components/team/TeamCard.astro";
+// Content
+import { getCollection } from "astro:content";
+const allTeam = await getCollection("team");
+---
+<BaseLayout>
+  <section>
+    <Wrapper variant="standard" class="pb-12 pt-48">
+      <div
+        class="mx-auto text-center"
+        data-aos="fade-down"
+        data-aos-duration="3000"
+      >
+        <Text tag="h1" variant="displayXL" class="text-white font-display">
+          Meet the AwakeMode team<span class="md:block text-base-400">
+            focused on reliability and control.</span
+          >
+        </Text>
+        <Text tag="p" variant="textBase" class="mt-4 text-base-300">
+          Product, extension, and frontend specialists shipping together.
+        </Text>
+      </div>
+      <ul
+        role="list"
+        class="grid grid-cols-1 gap-4 mt-24 md:grid-cols-2 lg:grid-cols-3"
+      >
+        {allTeam.map((post) => <TeamCard post={post} />)}
+      </ul>
+    </Wrapper>
+  </section>
+</BaseLayout>

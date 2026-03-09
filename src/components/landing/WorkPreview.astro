@@ -1,0 +1,30 @@
+---
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Components
+import WorkCard from "@/components/work/WorkCard.astro";
+// Content
+import { getCollection } from "astro:content";
+const allWork = await getCollection("work");
+---
+
+<section class="relative overflow-hidden">
+  <Wrapper class="py-12 lg:py-24">
+    <div data-aos="fade-up" data-aos-duration="2000">
+      <Text tag="h3" variant="displayMD" class="text-white font-display">
+        Real AwakeMode scenarios,
+        <span class="md:block text-base-400">
+          from long exports to overnight automation.</span
+        >
+      </Text>
+      <div class="flex mt-12">
+        <Button href="/work" size="lg" variant="muted">See all use cases</Button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 gap-4 mt-24 md:grid-cols-2 lg:grid-cols-3">
+      {allWork.slice(0, 3).map((post) => <WorkCard post={post} />)}
+    </div>
+  </Wrapper>
+</section>

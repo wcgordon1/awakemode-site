@@ -1,0 +1,59 @@
+---
+// Assets
+import { Image } from "astro:assets";
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+const { frontmatter } = Astro.props;
+---
+
+<BaseLayout>
+  <section>
+    <Wrapper variant="standard" class="pb-12 pt-48">
+      <div data-aos="fade-down" data-aos-duration="3000">
+        <Image
+          width={48}
+          height={48}
+          src={frontmatter.avatar.url}
+          alt={frontmatter.avatar.alt}
+          class="object-cover rounded-full shrink-0 size-20 drop-shadow-3xl"
+        />
+
+        <Text tag="p" variant="textXL" class="font-medium text-white mt-24">
+          {frontmatter.name}
+        </Text>
+        <Text
+          tag="h1"
+          variant="displayMD"
+          class="mt-2 text-white font-display text-balance"
+        >
+          {frontmatter.role}
+        </Text>
+      </div>
+      <div class="grid grid-cols-1 gap-12 lg:grid-cols-2">
+        <div>
+          <Text tag="h3" variant="textBase" class="font-medium text-white"
+            >Education</Text
+          >
+          <ul class="mt-4 text-sm text-base-300">
+            {frontmatter.education.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+        <div>
+          <Text tag="h3" variant="textBase" class="font-medium text-white"
+            >Experience</Text
+          >
+          <ul class="mt-4 text-sm text-base-300">
+            {frontmatter.experience.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+      </div>
+      <div class="pt-8 mt-8 border-t border-base-800">
+        <Wrapper variant="prose" class="max-w-xl">
+          <slot />
+        </Wrapper>
+      </div>
+    </Wrapper>
+  </section>
+</BaseLayout>

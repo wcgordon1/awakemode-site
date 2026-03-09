@@ -1,0 +1,25 @@
+---
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+---
+
+<section>
+  <Wrapper class="py-24">
+    <div class="text-center lg:mx-auto">
+      <Text tag="h3" variant="displayXL" class="text-white font-display">
+        Ready to keep your machine awake <span class="md:block text-base-500"
+          >when work cannot pause?</span
+        >
+      </Text>
+      <Text tag="p" variant="textBase" class="mt-5 text-base-300 text-center">
+        Start in the browser today, then add extension-level control when you need it.
+      </Text>
+    </div>
+    <div class="flex flex-wrap gap-3 mt-12 justify-center">
+      <Button href="/sign-up" size="lg" variant="accent">Start free</Button>
+      <Button href="/contact" size="lg" variant="muted">Talk to us</Button>
+    </div>
+  </Wrapper>
+</section>

@@ -1,0 +1,100 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+---
+
+<BaseLayout hideNav={true} hideFooter={true}>
+  <section class="relative overflow-hidden">
+    <Wrapper
+      variant="standard"
+      class="flex flex-col lg:h-dvh items-center justify-center"
+    >
+      <div class="w-full max-w-sm mx-auto">
+        <div class="overflow-hidden">
+          <Text
+            data-aos="fade-up"
+            data-aos-duration="1500"
+            tag="h1"
+            variant="displayMD"
+            class="text-white font-display"
+            >Create your AwakeMode account
+          </Text>
+        </div>
+        <form>
+          <div class="mt-12 space-y-4">
+            <div>
+              <label for="email" class="block text-sm font-medium text-white"
+                >Email</label
+              >
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="off"
+                placeholder="email@example.com"
+                aria-placeholder="Your email"
+                class="block w-full h-12 px-3 py-2 mt-2 border rounded-md appearance-none bg-base-900 border-base-800 focus:bg-base-900 focus:border-accent-300 focus:outline-none focus:ring-accent-300 placeholder-base-500 sm:text-sm text-accent-300 text-lime"
+              />
+            </div>
+            <div>
+              <label
+                for="password"
+                class="block text-sm font-medium text-white"
+              >
+                Enter your password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="off"
+                placeholder="••••••••"
+                aria-placeholder="Your password"
+                class="block w-full h-12 px-3 py-2 mt-2 border rounded-md appearance-none bg-base-900 border-base-800 focus:bg-base-900 focus:border-accent-300 focus:outline-none focus:ring-accent-300 placeholder-base-500 sm:text-sm text-accent-300 text-lime"
+              />
+            </div>
+            <div class="flex items-start gap-2">
+              <input
+                id="terms"
+                name="terms"
+                type="checkbox"
+                class="rounded text-accent-500 focus:ring-transparent outline outline-base-800 size-4 bg-base-900"
+              />
+              <label
+                for="terms"
+                class="block text-xs text-base-500 text-balance"
+              >
+                Creating an account means you agree to our
+                <a
+                  class="text-xs text-white underline hover:text-base-400"
+                  href="/legal/terms"
+                >
+                  Terms
+                </a>
+                and
+                <a
+                  class="text-xs text-white underline hover:text-base-400"
+                  href="/legal/privacy"
+                >
+                  Privacy Policy
+                </a>.
+              </label>
+            </div>
+          </div>
+          <div class="flex mt-4">
+            <Button size="lg" variant="accent" class="w-full">Create account</Button>
+          </div>
+          <Text tag="p" variant="textXS" class="mt-24 text-base-400">
+            Already have an account?
+            <a href="/sign-in" class="ml-3 text-white hover:text-base-400">
+              Sign in instead
+            </a>
+          </Text>
+        </form>
+      </div>
+    </Wrapper>
+  </section>
+</BaseLayout>

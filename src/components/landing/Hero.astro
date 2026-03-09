@@ -1,0 +1,29 @@
+---
+// Fundations
+import Text from "@/components/fundations/elements/Text.astro";
+import Button from "@/components/fundations/elements/Button.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+---
+
+<section>
+  <Wrapper variant="standard" class="pb-12 pt-48">
+    <div
+      class="mx-auto text-center"
+      data-aos="fade-down"
+      data-aos-duration="1500"
+    >
+      <Text tag="h1" variant="displayXL" class="text-white font-display">
+        Keep your computer awake<span class="md:block text-base-400">
+          from the browser with AwakeMode.</span
+        >
+      </Text>
+      <Text tag="p" variant="textXL" class="mt-4 text-base-300"
+        >Chromium-first wake sessions for focused work, downloads, and demos.</Text
+      >
+      <div class="flex flex-wrap justify-center gap-3 mt-12">
+        <Button href="/sign-up" size="lg" variant="accent">Start a session</Button>
+        <Button href="#how-it-works" size="lg" variant="muted">How it works</Button>
+      </div>
+    </div>
+  </Wrapper>
+</section>

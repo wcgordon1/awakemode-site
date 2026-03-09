@@ -1,0 +1,46 @@
+---
+// Assets
+import { Image } from "astro:assets";
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+const { frontmatter } = Astro.props;
+---
+
+<BaseLayout>
+  <section>
+    <Wrapper variant="standard" class="pb-12 pt-48">
+      <div data-aos="fade-down" data-aos-duration="3000">
+        <Image
+          width={48}
+          height={48}
+          src={frontmatter.logo.url}
+          alt={frontmatter.logo.alt}
+          class="object-cover rounded-full size-12 shrink-0 drop-shadow-3xl"
+        />
+        <Text tag="p" variant="textLG" class="font-medium text-white mt-24">
+          <span>{frontmatter.client}</span>
+          <span>/</span>
+          <span> {frontmatter.work}</span>
+          <span class="text-base-300"
+            >/ {frontmatter.launchDate.toString().slice(10, 15)}</span
+          >
+        </Text>
+
+        <Text
+          tag="h1"
+          variant="displayMD"
+          class="mt-12 text-white font-display text-balance"
+        >
+          {frontmatter.description}
+        </Text>
+      </div>
+      <Wrapper variant="narrow" class="pt-8 mt-8 border-t border-base-800">
+        <Wrapper variant="prose">
+          <slot />
+        </Wrapper>
+      </Wrapper>
+    </Wrapper>
+  </section>
+</BaseLayout>

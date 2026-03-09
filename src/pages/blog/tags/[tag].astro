@@ -1,0 +1,56 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Components
+import EntriesOne from "@/components/blog/BlogCard.astro";
+import { getCollection } from "astro:content";
+
+export async function getStaticPaths() {
+  const allPosts = await getCollection("posts");
+  const uniqueTags = [
+    ...new Set(allPosts.map((post) => post.data.tags).flat()),
+  ];
+
+  return uniqueTags.map((tag) => {
+    const filteredPosts = allPosts.filter((post) =>
+      post.data.tags.includes(tag)
+    );
+    return {
+      params: { tag },
+      props: { posts: filteredPosts },
+    };
+  });
+}
+
+const { tag } = Astro.params;
+const { posts } = Astro.props;
+---
+
+<BaseLayout pageTitle={tag}>
+  <section class="relative overflow-hidden">
+    <Wrapper variant="standard">
+      <div data-aos="fade-down" data-aos-duration="3000">
+        <Text
+          tag="h1"
+          variant="displayMD"
+          class="text-white text-center text-balance font-display"
+        >
+          AwakeMode posts tagged with:<span
+            class="md:block text-base-400 capitalize"
+          >
+            {tag}.</span
+          >
+        </Text>
+      </div>
+    </Wrapper>
+    <Wrapper variant="standard" class="py-12">
+      <div
+        class="flex flex-col max-w-lg mx-auto divide-y divide-base-800 border-y border-base-800"
+      >
+        {posts.map((post) => <EntriesOne post={post} />)}
+      </div>
+    </Wrapper>
+  </section>
+</BaseLayout>

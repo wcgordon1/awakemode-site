@@ -1,0 +1,31 @@
+---
+// Fundations
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import Text from "@/components/fundations/elements/Text.astro";
+import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+const { frontmatter } = Astro.props;
+---
+
+<BaseLayout>
+  <section>
+    <Wrapper variant="standard" class="pb-12 pt-48">
+      <div data-aos="fade-down" data-aos-duration="3000">
+        <Text
+          tag="h1"
+          variant="displayXL"
+          class="mt-12 text-white font-display text-balance"
+        >
+          {frontmatter.service}
+        </Text>
+        <Text tag="p" variant="textLG" class="mt-4 text-base-300 text-balance">
+          {frontmatter.description}.
+        </Text>
+      </div>
+      <Wrapper variant="narrow" class="pt-8 mt-8 border-t border-base-800">
+        <Wrapper variant="prose">
+          <slot />
+        </Wrapper>
+      </Wrapper>
+    </Wrapper>
+  </section>
+</BaseLayout>

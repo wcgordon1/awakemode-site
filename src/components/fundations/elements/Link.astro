@@ -1,0 +1,94 @@
+---
+const {
+  gap,
+  size,
+  href,
+  variant,
+  onlyIconSize,
+  class: className,
+  ...rest
+} = Astro.props;
+// Default button
+const defaultClass = [
+  "text-accent-900",
+  "bg-accent-100 hover:bg-accent-200",
+  "focus:outline-accent-200",
+  "outline-accent-100",
+];
+// Accent button
+const accentClass = [
+  "text-accent-950",
+  "bg-linear-to-tr/oklch from-accent-500 via-accent-400 to-accent-300 hover:to-accent-400 ",
+  "focus:outline-accent-300",
+  "outline-accent-400",
+];
+// Muted button
+const mutedClass = [
+  "text-white",
+  "hover:text-accent-300",
+  "bg-base-900 ",
+  "hover:bg-base-800",
+  "focus:outline-base-700",
+  "outline-base-800",
+];
+// Size (only applies if variant is not "link")
+const xs = ["h-8", "px-6", "py-2", "text-xs rounded-lg"];
+const sm = ["h-9", "px-6", "py-2", "text-sm rounded-lg"];
+const base = ["h-10", "px-8", "py-3", "text-base rounded-xl"];
+const md = ["h-11", "px-8", "py-3", "text-md rounded-xl"];
+const lg = ["h-12", "px-8", "py-3", "text-lg rounded-xl"];
+const xl = ["h-14", "px-12", "py-3", "text-xl rounded-xl"];
+// Gap
+const gapXS = ["gap-2"];
+const gapSM = ["gap-4"];
+const gapBase = ["gap-8"];
+const gapMD = ["gap-10"];
+const gapLG = ["gap-12"];
+const additionalClasses = className ? className.split(" ") : [];
+---
+
+<a
+  href={href}
+  class:list={[
+    ...(variant === "link"
+      ? [...additionalClasses]
+      : [
+          "flex",
+          "relative",
+          "transition",
+          "text-center",
+          "font-medium",
+          "items-center",
+          "shadow-massive",
+          "justify-center",
+          "duration-300",
+          "ease-in-out",
+          "transition-all",
+          "hover:shadow-none",
+          "outline",
+          "focus:outline-offset-4",
+          "oultine-offset-base-900",
+          "focus-visible:outline-none  focus:outline-2",
+          variant === "muted" && mutedClass,
+          variant === "accent" && accentClass,
+          variant === "default" && defaultClass,
+          size === "xs" && xs,
+          size === "sm" && sm,
+          size === "base" && base,
+          size === "md" && md,
+          size === "lg" && lg,
+          size === "xl" && xl,
+          gap === "xs" && gapXS,
+          gap === "sm" && gapSM,
+          gap === "base" && gapBase,
+          gap === "md" && gapMD,
+          gap === "lg" && gapLG,
+          ...additionalClasses,
+        ]),
+  ]}
+  {...rest}
+>
+  <slot name="left-icon" />
+  <slot />
+  <slot name="right-icon" />
+</a>
