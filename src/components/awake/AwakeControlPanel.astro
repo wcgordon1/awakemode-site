@@ -5,55 +5,81 @@ import PrimarySessionAction from "@/components/awake/PrimarySessionAction.astro"
 import ProfileManager from "@/components/awake/ProfileManager.astro";
 import ProfileQuickLaunch from "@/components/awake/ProfileQuickLaunch.astro";
 import SessionModeSelector from "@/components/awake/SessionModeSelector.astro";
+import SessionStatusBadge from "@/components/awake/SessionStatusBadge.astro";
 import ShortcutHints from "@/components/awake/ShortcutHints.astro";
 import StatusRail from "@/components/awake/StatusRail.astro";
 import TimerPresets from "@/components/awake/TimerPresets.astro";
 ---
 
-<div id="awake-control-panel" class="mx-auto mt-12 w-full max-w-5xl">
+<div id="awake-control-panel" class="mx-auto mt-12 w-full max-w-3xl">
   <div class="rounded-3xl border border-base-700 bg-base-950/70 p-6 shadow-massive backdrop-blur-xl">
-    <CapabilityBanner />
+    <div class="space-y-4 text-left">
+      <SessionStatusBadge />
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-      <div class="space-y-5 text-left">
-        <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
-          <p class="text-xs uppercase tracking-wider text-base-400">Session mode</p>
-          <div class="mt-3">
-            <SessionModeSelector />
-          </div>
-
-          <div id="awake-timer-controls" class="mt-4 space-y-4">
-            <div class="space-y-2">
-              <p class="text-xs uppercase tracking-wider text-base-400">Timer presets</p>
-              <TimerPresets />
-            </div>
-            <CustomTimerInput />
-          </div>
-
-          <div class="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
-            <PrimarySessionAction />
-            <button
-              id="awake-retry-action"
-              type="button"
-              class="rounded-xl border border-base-700 bg-base-900 px-4 py-3 text-sm text-base-200 hover:text-white hover:border-accent-300"
-              hidden
-            >
-              Retry lock
-            </button>
-          </div>
+      <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
+        <p class="text-xs uppercase tracking-wider text-base-400">Session mode</p>
+        <div class="mt-3">
+          <SessionModeSelector />
         </div>
 
-        <ProfileQuickLaunch />
-        <ProfileManager />
-        <ShortcutHints />
+        <div id="awake-timer-controls" class="mt-4 space-y-4">
+          <div class="space-y-2">
+            <p class="text-xs uppercase tracking-wider text-base-400">Timer presets</p>
+            <TimerPresets />
+          </div>
+          <CustomTimerInput />
+        </div>
+
+        <div class="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+          <PrimarySessionAction />
+          <button
+            id="awake-retry-action"
+            type="button"
+            class="rounded-xl border border-base-700 bg-base-900 px-4 py-3 text-sm text-base-200 hover:text-white hover:border-accent-300"
+            hidden
+          >
+            Retry lock
+          </button>
+        </div>
+
+        <p id="awake-client-metadata" class="mt-4 text-xs text-base-500" aria-live="polite"></p>
+
+        <div class="mt-4 border-t border-base-700 pt-3">
+          <button
+            id="awake-settings-toggle"
+            type="button"
+            class="rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-xs uppercase tracking-wider text-base-300 hover:text-white hover:border-accent-300"
+            aria-expanded="false"
+            aria-controls="awake-settings-drawer"
+          >
+            Settings
+          </button>
+        </div>
       </div>
 
-      <StatusRail />
+      <div id="awake-settings-drawer" class="awake-settings-drawer" data-open="false" aria-hidden="true">
+        <div class="space-y-4 border-t border-base-700 pt-4">
+          <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
+            <p class="text-xs uppercase tracking-wider text-base-400">Profiles</p>
+            <div class="mt-3 space-y-4">
+              <ProfileQuickLaunch />
+              <ProfileManager />
+            </div>
+          </div>
+
+          <ShortcutHints />
+
+          <StatusRail />
+
+          <CapabilityBanner />
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
+  import { detectWakeClientInfo } from "../../lib/clientInfo";
   import {
     PRESET_MINUTES,
     createWakeSessionEngine,
@@ -62,6 +88,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
   } from "../../lib/wakeSession";
   import { MAX_PROFILES, createWakeProfileService } from "../../lib/wakeProfiles";
   import { createWakeShortcutController } from "../../lib/wakeShortcuts";
+  import { createWakeUiPreferenceService } from "../../lib/wakeUiPreferences";
 
   const SELECTED_PROFILE_STORAGE_KEY = "awakemode:selected-profile-id";
 
@@ -97,6 +124,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const modeInputs = panel.querySelectorAll('input[name="awake-session-mode"]');
     const presetButtons = panel.querySelectorAll("[data-timer-preset]");
     const customMinutesInput = panel.querySelector("#awake-custom-minutes");
+    const settingsToggle = panel.querySelector("#awake-settings-toggle");
+    const settingsDrawer = panel.querySelector("#awake-settings-drawer");
+    const clientMetadata = panel.querySelector("#awake-client-metadata");
 
     const platformHint = panel.querySelector("#awake-platform-hint");
     const macHint = panel.querySelector("#awake-mac-hint");
@@ -128,6 +158,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       !modeInputs.length ||
       !presetButtons.length ||
       !customMinutesInput ||
+      !settingsToggle ||
+      !settingsDrawer ||
+      !clientMetadata ||
       !platformHint ||
       !macHint ||
       !windowsHint ||
@@ -150,9 +183,56 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 
     const engine = createWakeSessionEngine();
     const profileService = createWakeProfileService();
+    const uiPreferenceService = createWakeUiPreferenceService({
+      defaultCustomMinutes: PRESET_MINUTES.includes(30) ? 30 : PRESET_MINUTES[0],
+    });
+
+    const nav = navigator;
+    const navWithUserAgentData = nav;
+    const userAgentDataBrands = Array.isArray(navWithUserAgentData.userAgentData?.brands)
+      ? navWithUserAgentData.userAgentData.brands
+      : null;
+
+    const clientInfo = detectWakeClientInfo({
+      userAgent: nav.userAgent,
+      platform: nav.platform,
+      userAgentDataBrands,
+    });
+
+    let uiPreferences = uiPreferenceService.read();
+    let settingsOpen = uiPreferences.settingsOpen;
+    let persistedMode = uiPreferences.mode;
+    let persistedCustomMinutes = uiPreferences.customMinutes;
+
+    const writeUiPreferences = (patch) => {
+      uiPreferences = uiPreferenceService.write(patch);
+      settingsOpen = uiPreferences.settingsOpen;
+      persistedMode = uiPreferences.mode;
+      persistedCustomMinutes = uiPreferences.customMinutes;
+      return uiPreferences;
+    };
+
+    const persistModePreference = (mode) => {
+      if (persistedMode === mode) {
+        return;
+      }
+
+      writeUiPreferences({ mode });
+    };
+
+    const persistCustomMinutesPreference = (minutes) => {
+      const normalized = normalizeCustomMinutes(minutes);
+      if (normalized === null || persistedCustomMinutes === normalized) {
+        return;
+      }
+
+      writeUiPreferences({ customMinutes: normalized });
+    };
 
     const defaultPreset = PRESET_MINUTES.includes(30) ? 30 : PRESET_MINUTES[0];
-    let selectedPreset = defaultPreset;
+    let selectedPreset = PRESET_MINUTES.includes(uiPreferences.customMinutes)
+      ? uiPreferences.customMinutes
+      : defaultPreset;
     let profiles = [];
     let quickLaunchProfiles = [];
     let selectedProfileId = (() => {
@@ -177,6 +257,18 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
         }
       } catch {
         // Ignore localStorage failures (private mode, quota, etc.).
+      }
+    };
+
+    const setSettingsOpen = (isOpen, { persist = true } = {}) => {
+      settingsOpen = isOpen;
+      settingsDrawer.setAttribute("data-open", String(isOpen));
+      settingsDrawer.setAttribute("aria-hidden", String(!isOpen));
+      settingsToggle.setAttribute("aria-expanded", String(isOpen));
+      settingsToggle.textContent = isOpen ? "Hide settings" : "Settings";
+
+      if (persist && uiPreferences.settingsOpen !== isOpen) {
+        writeUiPreferences({ settingsOpen: isOpen });
       }
     };
 
@@ -214,6 +306,15 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       }
     };
 
+    const renderClientMetadata = (state) => {
+      const compatibility = state.supportStatus === "unsupported" ? "Not compatible" : "Compatible";
+      clientMetadata.textContent = `${clientInfo.browser} on ${clientInfo.machine} | ${compatibility}`;
+      clientMetadata.setAttribute(
+        "data-compatibility",
+        state.supportStatus === "unsupported" ? "unsupported" : "supported",
+      );
+    };
+
     const applyProfileToSessionControls = (profile) => {
       if (!profile) {
         return;
@@ -222,10 +323,12 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       modeInputs.forEach((input) => {
         input.checked = input.value === profile.mode;
       });
+      persistModePreference(profile.mode);
 
       if (profile.mode === "timer") {
         const duration = profile.durationMinutes ?? defaultPreset;
         customMinutesInput.value = String(duration);
+        persistCustomMinutesPreference(duration);
 
         if (PRESET_MINUTES.includes(duration)) {
           setSelectedPreset(duration);
@@ -419,9 +522,11 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       modeInputs.forEach((input) => {
         input.checked = input.value === state.mode;
       });
+      persistModePreference(state.mode);
 
       capabilityBanner.hidden = state.supportStatus !== "unsupported";
       renderModeState();
+      renderClientMetadata(state);
 
       if (state.mode === "timer" && state.intent && state.remainingMs !== null) {
         timerRemaining.hidden = false;
@@ -470,6 +575,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 
     const startFromControls = async () => {
       const mode = getSelectedMode();
+      persistModePreference(mode);
 
       if (mode === "timer") {
         const durationMs = getTimerDurationMs();
@@ -477,6 +583,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
           return;
         }
 
+        persistCustomMinutesPreference(durationMs / 60_000);
         await engine.start("timer", durationMs);
         return;
       }
@@ -499,6 +606,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       modeInputs.forEach((input) => {
         input.checked = input.value === nextMode;
       });
+      persistModePreference(nextMode);
 
       if (nextMode === "timer" && !customMinutesInput.value.trim()) {
         customMinutesInput.value = String(selectedPreset);
@@ -533,11 +641,22 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       setProfileFeedback(`Launched ${profile.name}.`, "success");
     };
 
-    setSelectedPreset(defaultPreset);
-    customMinutesInput.value = String(defaultPreset);
+    modeInputs.forEach((input) => {
+      input.checked = input.value === uiPreferences.mode;
+    });
 
-    renderProfiles({ applyToSession: true });
+    if (PRESET_MINUTES.includes(uiPreferences.customMinutes)) {
+      setSelectedPreset(uiPreferences.customMinutes);
+      customMinutesInput.value = String(uiPreferences.customMinutes);
+    } else {
+      clearPresetSelection();
+      customMinutesInput.value = String(uiPreferences.customMinutes);
+    }
+
+    renderProfiles({ applyToSession: false });
     renderEventLog();
+    renderModeState();
+    setSettingsOpen(settingsOpen, { persist: false });
 
     presetButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -548,6 +667,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 
         setSelectedPreset(presetValue);
         customMinutesInput.value = String(presetValue);
+        persistCustomMinutesPreference(presetValue);
       });
     });
 
@@ -558,12 +678,21 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       } else {
         clearPresetSelection();
       }
+
+      if (normalized !== null) {
+        persistCustomMinutesPreference(normalized);
+      }
     });
 
     modeInputs.forEach((input) => {
       input.addEventListener("change", () => {
         renderModeState();
+        persistModePreference(getSelectedMode());
       });
+    });
+
+    settingsToggle.addEventListener("click", () => {
+      setSettingsOpen(!settingsOpen);
     });
 
     primaryAction.addEventListener("click", async () => {
@@ -610,7 +739,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
           setProfileFeedback(`Updated profile ${updated.name}.`, "success");
         }
 
-        renderProfiles({ applyToSession: true });
+        renderProfiles({ applyToSession: false });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to save profile.";
         setProfileFeedback(message, "error");
@@ -626,7 +755,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
         profileService.deleteProfile(selectedProfileId);
         setSelectedProfileId(null);
         setProfileFeedback("Profile deleted.", "success");
-        renderProfiles({ applyToSession: true });
+        renderProfiles({ applyToSession: false });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to delete profile.";
         setProfileFeedback(message, "error");
@@ -641,7 +770,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       try {
         const defaultProfile = profileService.setDefaultProfile(selectedProfileId);
         setProfileFeedback(`${defaultProfile.name} is now default.`, "success");
-        renderProfiles({ applyToSession: true });
+        renderProfiles({ applyToSession: false });
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to set default profile.";
         setProfileFeedback(message, "error");
@@ -702,6 +831,22 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 </script>
 
 <style>
+  #awake-control-panel .awake-settings-drawer {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: max-height 280ms ease, opacity 220ms ease, transform 220ms ease;
+  }
+
+  #awake-control-panel .awake-settings-drawer[data-open="true"] {
+    max-height: 2600px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
   #awake-control-panel [data-timer-preset][aria-pressed="true"] {
     border-color: var(--color-accent-300);
     background-color: var(--color-base-800);
@@ -738,5 +883,9 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
 
   #awake-profile-feedback[data-tone="success"] {
     color: oklch(0.86 0.14 156);
+  }
+
+  #awake-client-metadata[data-compatibility="unsupported"] {
+    color: oklch(0.86 0.12 84);
   }
 </style>

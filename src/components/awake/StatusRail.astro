@@ -1,11 +1,9 @@
 ---
 import PlatformHint from "@/components/awake/PlatformHint.astro";
-import SessionStatusBadge from "@/components/awake/SessionStatusBadge.astro";
 ---
 
 <div class="space-y-4">
-  <SessionStatusBadge />
-
+  
   <div class="rounded-xl border border-base-700 bg-base-900/80 p-4">
     <p class="text-xs uppercase tracking-wider text-base-400">Reliability</p>
     <p class="mt-3 text-sm text-base-300">
@@ -19,5 +17,10 @@ import SessionStatusBadge from "@/components/awake/SessionStatusBadge.astro";
     <ol id="awake-event-log" class="mt-3 space-y-2 text-xs text-base-300"></ol>
   </div>
 
-  <PlatformHint />
+  <div class="rounded-xl border border-base-700 bg-base-900/80 p-4">
+    <p class="text-xs uppercase tracking-wider text-base-400">Fallback help</p>
+    <div class="mt-3">
+      <PlatformHint />
+    </div>
+  </div>
 </div>
