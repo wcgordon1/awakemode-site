@@ -7,11 +7,11 @@ You are continuing work on AwakeMode in this repository:
 /Users/williamgordon/Downloads/awakemode
 
 Before making any changes, read these files:
-1) docs/handoffs/2026-03-09-awakemode-v1.3.1.md
+1) docs/handoffs/2026-03-09-awakemode-v1.3.3.md
 2) docs/runbooks/dev-commands.md
 
 Context:
-- v1.2-v1.3.1 has been implemented (minimal main UI, settings drawer, pause/resume timer, floating mini controls, 10-second beep alerts, custom profile listbox, clickability/UI polish).
+- v1.2-v1.3.3 has been implemented (minimal main UI, settings drawer, pause/resume timer, floating mini controls, startup chirp + 10-second alerts, event log table with duration column behavior, status-pill border polish, clickability/UI polish).
 - Keep browser-only scope unless explicitly instructed otherwise.
 - Chromium is the first-class target.
 
@@ -34,9 +34,9 @@ Important constraints:
 ## Optional: Starter Prompt for Chrome Extension Phase
 
 ```text
-Continue from AwakeMode v1.3.1 and begin Chrome extension architecture planning.
+Continue from AwakeMode v1.3.3 and begin Chrome extension architecture planning.
 Read first:
-- docs/handoffs/2026-03-09-awakemode-v1.3.1.md
+- docs/handoffs/2026-03-09-awakemode-v1.3.3.md
 - docs/runbooks/dev-commands.md
 
 Deliver:

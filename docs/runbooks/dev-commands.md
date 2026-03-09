@@ -49,7 +49,9 @@ npm run test && npm run build
 1. Load homepage in Chrome/Edge/Brave.
 2. Start indefinite session.
 3. Confirm status becomes `Active`.
-4. Stop session and confirm status returns `Released`.
+4. Confirm the top-left status pill shows a purple border while active.
+5. Stop session and confirm status returns `Released`.
+6. Confirm the top-left status pill border returns to neutral when released.
 
 ### Timer flow + pause/resume
 1. Switch to timer mode.
@@ -70,10 +72,18 @@ npm run test && npm run build
 
 ### Beep alert
 1. Ensure beep toggle is enabled in settings.
-2. Start a short timer and let it cross 10 seconds remaining.
-3. Confirm triple beep plays once.
-4. Disable beep toggle and repeat; confirm no beep.
-5. Refresh and confirm beep preference persists.
+2. Start a timer and confirm a single startup chirp plays.
+3. Let timer cross 10 seconds remaining.
+4. Confirm triple beep plays once.
+5. Disable beep toggle and repeat; confirm no beep.
+6. Refresh and confirm beep preference persists.
+
+### Event log table + duration
+1. Open settings drawer and inspect the Event log card.
+2. Confirm headers align cleanly with row content: Event, Time, Duration, Detail.
+3. Confirm row text remains left-aligned and vertically aligned per column.
+4. Confirm Duration is shown only for `Session stopped` / `Wake lock released` rows.
+5. Confirm non-terminal rows show `--` for Duration.
 
 ### Profiles
 1. Open profile selector and verify custom themed dropdown.
@@ -102,13 +112,16 @@ npm run test && npm run build
 2. Confirm unsupported banner appears.
 3. Confirm start is disabled and fallback guidance is visible.
 
-## Key Files for v1.3.1
+## Key Files for v1.3.3
 - `src/components/awake/AwakeControlPanel.astro`
 - `src/components/awake/AwakeMiniControls.astro`
 - `src/components/awake/SessionStatusBadge.astro`
 - `src/components/awake/ProfileManager.astro`
+- `src/components/awake/StatusRail.astro`
+- `src/components/awake/PrimarySessionAction.astro`
 - `src/lib/wakeSession.ts`
 - `src/lib/wakeSessionRuntime.ts`
 - `src/lib/wakeAlerts.ts`
 - `src/lib/wakeUiPreferences.ts`
+- `src/styles/global.css`
 - Tests under `src/lib/*.test.ts`
