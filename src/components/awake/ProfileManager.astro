@@ -1,0 +1,78 @@
+<div class="space-y-4 rounded-xl border border-base-700 bg-base-900/70 p-4">
+  <div class="flex items-center justify-between">
+    <p class="text-xs uppercase tracking-wider text-base-300">Session profiles</p>
+    <p id="awake-profile-count" class="text-xs text-base-500"></p>
+  </div>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    <label class="flex flex-col gap-2">
+      <span class="text-xs text-base-400">Select profile</span>
+      <select
+        id="awake-profile-select"
+        class="rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-white focus:border-accent-300 focus:ring-accent-300"
+      ></select>
+    </label>
+
+    <label class="flex flex-col gap-2">
+      <span class="text-xs text-base-400">Name</span>
+      <input
+        id="awake-profile-name"
+        type="text"
+        maxlength="24"
+        placeholder="e.g. Overnight render"
+        class="rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-white placeholder:text-base-500 focus:border-accent-300 focus:ring-accent-300"
+      />
+    </label>
+  </div>
+
+  <div class="grid gap-3 sm:grid-cols-2">
+    <label class="flex flex-col gap-2">
+      <span class="text-xs text-base-400">Profile mode</span>
+      <select
+        id="awake-profile-mode"
+        class="rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-white focus:border-accent-300 focus:ring-accent-300"
+      >
+        <option value="indefinite">Indefinite</option>
+        <option value="timer">Timer</option>
+      </select>
+    </label>
+
+    <label class="flex flex-col gap-2">
+      <span class="text-xs text-base-400">Duration (minutes)</span>
+      <input
+        id="awake-profile-duration"
+        type="number"
+        min="1"
+        max="1440"
+        placeholder="30"
+        class="rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-white placeholder:text-base-500 focus:border-accent-300 focus:ring-accent-300"
+      />
+    </label>
+  </div>
+
+  <div class="grid gap-2 sm:grid-cols-3">
+    <button
+      id="awake-profile-save"
+      type="button"
+      class="rounded-lg border border-accent-400 bg-base-800 px-3 py-2 text-sm text-white hover:border-accent-300"
+    >
+      Save profile
+    </button>
+    <button
+      id="awake-profile-set-default"
+      type="button"
+      class="rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-200 hover:text-white hover:border-accent-300"
+    >
+      Set default
+    </button>
+    <button
+      id="awake-profile-delete"
+      type="button"
+      class="rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-200 hover:text-white hover:border-rose-400"
+    >
+      Delete
+    </button>
+  </div>
+
+  <p id="awake-profile-feedback" class="text-xs text-base-400" aria-live="polite"></p>
+</div>

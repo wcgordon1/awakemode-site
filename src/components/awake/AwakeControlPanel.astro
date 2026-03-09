@@ -1,34 +1,54 @@
 ---
 import CapabilityBanner from "@/components/awake/CapabilityBanner.astro";
 import CustomTimerInput from "@/components/awake/CustomTimerInput.astro";
-import PlatformHint from "@/components/awake/PlatformHint.astro";
 import PrimarySessionAction from "@/components/awake/PrimarySessionAction.astro";
+import ProfileManager from "@/components/awake/ProfileManager.astro";
+import ProfileQuickLaunch from "@/components/awake/ProfileQuickLaunch.astro";
 import SessionModeSelector from "@/components/awake/SessionModeSelector.astro";
-import SessionStatusBadge from "@/components/awake/SessionStatusBadge.astro";
+import ShortcutHints from "@/components/awake/ShortcutHints.astro";
+import StatusRail from "@/components/awake/StatusRail.astro";
 import TimerPresets from "@/components/awake/TimerPresets.astro";
 ---
 
-<div id="awake-control-panel" class="mx-auto mt-12 w-full max-w-2xl">
+<div id="awake-control-panel" class="mx-auto mt-12 w-full max-w-5xl">
   <div class="rounded-3xl border border-base-700 bg-base-950/70 p-6 shadow-massive backdrop-blur-xl">
-    <div class="space-y-6 text-left">
-      <CapabilityBanner />
-      <SessionStatusBadge />
+    <CapabilityBanner />
 
-      <div class="space-y-3">
-        <p class="text-xs uppercase tracking-wider text-base-400">Session mode</p>
-        <SessionModeSelector />
-      </div>
+    <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div class="space-y-5 text-left">
+        <div class="rounded-xl border border-base-700 bg-base-900/70 p-4">
+          <p class="text-xs uppercase tracking-wider text-base-400">Session mode</p>
+          <div class="mt-3">
+            <SessionModeSelector />
+          </div>
 
-      <div id="awake-timer-controls" class="space-y-4">
-        <div class="space-y-2">
-          <p class="text-xs uppercase tracking-wider text-base-400">Timer presets</p>
-          <TimerPresets />
+          <div id="awake-timer-controls" class="mt-4 space-y-4">
+            <div class="space-y-2">
+              <p class="text-xs uppercase tracking-wider text-base-400">Timer presets</p>
+              <TimerPresets />
+            </div>
+            <CustomTimerInput />
+          </div>
+
+          <div class="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <PrimarySessionAction />
+            <button
+              id="awake-retry-action"
+              type="button"
+              class="rounded-xl border border-base-700 bg-base-900 px-4 py-3 text-sm text-base-200 hover:text-white hover:border-accent-300"
+              hidden
+            >
+              Retry lock
+            </button>
+          </div>
         </div>
-        <CustomTimerInput />
+
+        <ProfileQuickLaunch />
+        <ProfileManager />
+        <ShortcutHints />
       </div>
 
-      <PrimarySessionAction />
-      <PlatformHint />
+      <StatusRail />
     </div>
   </div>
 </div>
@@ -40,6 +60,26 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     formatDurationMs,
     normalizeCustomMinutes,
   } from "../../lib/wakeSession";
+  import { MAX_PROFILES, createWakeProfileService } from "../../lib/wakeProfiles";
+  import { createWakeShortcutController } from "../../lib/wakeShortcuts";
+
+  const SELECTED_PROFILE_STORAGE_KEY = "awakemode:selected-profile-id";
+
+  const formatEventLabel = (eventType) => {
+    const labels = {
+      started: "Session started",
+      stopped: "Session stopped",
+      acquired: "Wake lock acquired",
+      released: "Wake lock released",
+      blocked: "Wake lock blocked",
+      reacquire_attempt: "Reacquire attempt",
+      reacquire_success: "Reacquire success",
+      reacquire_failed: "Reacquire failed",
+      timer_completed: "Timer completed",
+    };
+
+    return labels[eventType] ?? eventType;
+  };
 
   const setupAwakeControlPanel = () => {
     const panel = document.getElementById("awake-control-panel");
@@ -53,6 +93,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const timerRemaining = panel.querySelector("#awake-timer-remaining");
     const timerControls = panel.querySelector("#awake-timer-controls");
     const primaryAction = panel.querySelector("#awake-primary-action");
+    const retryAction = panel.querySelector("#awake-retry-action");
     const modeInputs = panel.querySelectorAll('input[name="awake-session-mode"]');
     const presetButtons = panel.querySelectorAll("[data-timer-preset]");
     const customMinutesInput = panel.querySelector("#awake-custom-minutes");
@@ -62,6 +103,20 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const windowsHint = panel.querySelector("#awake-windows-hint");
     const otherHint = panel.querySelector("#awake-other-hint");
 
+    const quickLaunchContainer = panel.querySelector("#awake-quick-launch");
+    const profileSelect = panel.querySelector("#awake-profile-select");
+    const profileNameInput = panel.querySelector("#awake-profile-name");
+    const profileModeSelect = panel.querySelector("#awake-profile-mode");
+    const profileDurationInput = panel.querySelector("#awake-profile-duration");
+    const profileCount = panel.querySelector("#awake-profile-count");
+    const profileSave = panel.querySelector("#awake-profile-save");
+    const profileDelete = panel.querySelector("#awake-profile-delete");
+    const profileSetDefault = panel.querySelector("#awake-profile-set-default");
+    const profileFeedback = panel.querySelector("#awake-profile-feedback");
+
+    const lockLossCount = panel.querySelector("#awake-lock-loss-count");
+    const eventLog = panel.querySelector("#awake-event-log");
+
     if (
       !capabilityBanner ||
       !statusBadge ||
@@ -69,24 +124,74 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       !timerRemaining ||
       !timerControls ||
       !primaryAction ||
+      !retryAction ||
       !modeInputs.length ||
       !presetButtons.length ||
       !customMinutesInput ||
       !platformHint ||
       !macHint ||
       !windowsHint ||
-      !otherHint
+      !otherHint ||
+      !quickLaunchContainer ||
+      !profileSelect ||
+      !profileNameInput ||
+      !profileModeSelect ||
+      !profileDurationInput ||
+      !profileCount ||
+      !profileSave ||
+      !profileDelete ||
+      !profileSetDefault ||
+      !profileFeedback ||
+      !lockLossCount ||
+      !eventLog
     ) {
       return;
     }
 
     const engine = createWakeSessionEngine();
+    const profileService = createWakeProfileService();
+
     const defaultPreset = PRESET_MINUTES.includes(30) ? 30 : PRESET_MINUTES[0];
     let selectedPreset = defaultPreset;
+    let profiles = [];
+    let quickLaunchProfiles = [];
+    let selectedProfileId = (() => {
+      try {
+        const storedValue = window.localStorage.getItem(SELECTED_PROFILE_STORAGE_KEY);
+        return storedValue && storedValue.trim() ? storedValue : null;
+      } catch {
+        return null;
+      }
+    })();
+    let eventHistory = [];
+    let lockLosses = 0;
+
+    const setSelectedProfileId = (profileId) => {
+      selectedProfileId = profileId;
+
+      try {
+        if (profileId) {
+          window.localStorage.setItem(SELECTED_PROFILE_STORAGE_KEY, profileId);
+        } else {
+          window.localStorage.removeItem(SELECTED_PROFILE_STORAGE_KEY);
+        }
+      } catch {
+        // Ignore localStorage failures (private mode, quota, etc.).
+      }
+    };
+
+    const setProfileFeedback = (message, tone = "neutral") => {
+      profileFeedback.textContent = message;
+      profileFeedback.setAttribute("data-tone", tone);
+    };
 
     const getSelectedMode = () => {
       const selected = [...modeInputs].find((input) => input.checked);
       return selected?.value === "timer" ? "timer" : "indefinite";
+    };
+
+    const clearPresetSelection = () => {
+      presetButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
     };
 
     const setSelectedPreset = (minutes) => {
@@ -100,6 +205,124 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const renderModeState = () => {
       const isTimer = getSelectedMode() === "timer";
       timerControls.hidden = !isTimer;
+    };
+
+    const setProfileDurationEnabled = (mode) => {
+      profileDurationInput.disabled = mode !== "timer";
+      if (mode !== "timer") {
+        profileDurationInput.value = "";
+      }
+    };
+
+    const applyProfileToSessionControls = (profile) => {
+      if (!profile) {
+        return;
+      }
+
+      modeInputs.forEach((input) => {
+        input.checked = input.value === profile.mode;
+      });
+
+      if (profile.mode === "timer") {
+        const duration = profile.durationMinutes ?? defaultPreset;
+        customMinutesInput.value = String(duration);
+
+        if (PRESET_MINUTES.includes(duration)) {
+          setSelectedPreset(duration);
+        } else {
+          clearPresetSelection();
+        }
+      }
+
+      renderModeState();
+    };
+
+    const applyProfileToEditor = (profile) => {
+      if (!profile) {
+        profileNameInput.value = "";
+        profileModeSelect.value = "timer";
+        profileDurationInput.value = String(defaultPreset);
+        setProfileDurationEnabled("timer");
+        return;
+      }
+
+      profileNameInput.value = profile.name;
+      profileModeSelect.value = profile.mode;
+      profileDurationInput.value =
+        profile.mode === "timer" && profile.durationMinutes !== null
+          ? String(profile.durationMinutes)
+          : "";
+      setProfileDurationEnabled(profile.mode);
+    };
+
+    const renderQuickLaunch = () => {
+      quickLaunchContainer.innerHTML = "";
+
+      if (quickLaunchProfiles.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "text-sm text-base-400";
+        empty.textContent = "No launch profiles available.";
+        quickLaunchContainer.append(empty);
+        return;
+      }
+
+      quickLaunchProfiles.forEach((profile, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className =
+          "awake-quick-launch rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-200 text-left hover:text-white hover:border-accent-300";
+        button.dataset.profileId = profile.id;
+        button.innerHTML = `<span class="text-xs text-base-500 mr-2">${index + 1}</span>${profile.name}`;
+
+        button.addEventListener("click", async () => {
+          await launchProfile(profile);
+        });
+
+        quickLaunchContainer.append(button);
+      });
+    };
+
+    const renderProfileOptions = () => {
+      profileSelect.innerHTML = "";
+
+      const createOption = document.createElement("option");
+      createOption.value = "__new";
+      createOption.textContent = "Create new profile";
+      profileSelect.append(createOption);
+
+      profiles.forEach((profile) => {
+        const option = document.createElement("option");
+        option.value = profile.id;
+        option.textContent = `${profile.name}${profile.isDefault ? " (default)" : ""}`;
+        profileSelect.append(option);
+      });
+
+      const selectedExists = profiles.some((profile) => profile.id === selectedProfileId);
+      if (!selectedExists) {
+        setSelectedProfileId(profiles.find((profile) => profile.isDefault)?.id ?? null);
+      }
+
+      profileSelect.value = selectedProfileId ?? "__new";
+
+      const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? null;
+      applyProfileToEditor(selectedProfile);
+
+      profileDelete.disabled = !selectedProfile;
+      profileSetDefault.disabled = !selectedProfile || selectedProfile.isDefault;
+    };
+
+    const renderProfiles = ({ applyToSession = false } = {}) => {
+      profiles = profileService.listProfiles();
+      quickLaunchProfiles = profiles.slice(0, 3);
+
+      profileCount.textContent = `${profiles.length}/${MAX_PROFILES}`;
+      renderQuickLaunch();
+      renderProfileOptions();
+
+      if (applyToSession) {
+        const selectedProfile = profiles.find((profile) => profile.id === selectedProfileId) ?? null;
+        applyProfileToSessionControls(selectedProfile);
+      }
     };
 
     const getTimerDurationMs = () => {
@@ -120,6 +343,22 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       return normalized * 60_000;
     };
 
+    const getProfileInput = () => {
+      const mode = profileModeSelect.value === "timer" ? "timer" : "indefinite";
+      const durationMinutes =
+        mode === "timer" ? normalizeCustomMinutes(profileDurationInput.value.trim()) : null;
+
+      if (mode === "timer" && durationMinutes === null) {
+        throw new Error("Duration must be between 1 and 1440 minutes.");
+      }
+
+      return {
+        name: profileNameInput.value,
+        mode,
+        durationMinutes,
+      };
+    };
+
     const applyBadgeStatus = (label) => {
       statusBadge.textContent = label;
       statusBadge.setAttribute("data-status", label.toLowerCase());
@@ -132,7 +371,51 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       otherHint.hidden = platform !== "other";
     };
 
-    const render = (state) => {
+    const renderEventLog = () => {
+      eventLog.innerHTML = "";
+
+      if (eventHistory.length === 0) {
+        const empty = document.createElement("li");
+        empty.className = "text-base-500";
+        empty.textContent = "No events yet.";
+        eventLog.append(empty);
+        return;
+      }
+
+      eventHistory.forEach((entry) => {
+        const line = document.createElement("li");
+        line.className = "flex items-start justify-between gap-3";
+
+        const label = document.createElement("span");
+        label.textContent = formatEventLabel(entry.type);
+
+        const timestamp = document.createElement("span");
+        timestamp.className = "text-base-500";
+        timestamp.textContent = new Date(entry.timestamp).toLocaleTimeString([], {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+
+        line.append(label, timestamp);
+
+        if (entry.detail) {
+          const detail = document.createElement("p");
+          detail.className = "text-base-500 mt-1";
+          detail.textContent = entry.detail;
+
+          const detailWrapper = document.createElement("div");
+          detailWrapper.className = "col-span-full";
+          detailWrapper.append(detail);
+          line.append(detailWrapper);
+        }
+
+        eventLog.append(line);
+      });
+    };
+
+    const renderState = (state) => {
       modeInputs.forEach((input) => {
         input.checked = input.value === state.mode;
       });
@@ -166,8 +449,8 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       } else if (state.supportStatus === "blocked" && state.intent) {
         applyBadgeStatus("Blocked");
         statusDetail.textContent = state.lastError
-          ? `Wake lock request was blocked: ${state.lastError}`
-          : "Wake lock request was blocked by browser or system policy.";
+          ? `Wake lock request blocked: ${state.lastError}`
+          : "Wake lock request blocked by browser or system policy.";
       } else {
         applyBadgeStatus("Released");
         statusDetail.textContent =
@@ -176,17 +459,85 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
             : "No active wake lock session.";
       }
 
-      if (state.intent) {
-        primaryAction.textContent = "Stop session";
-        primaryAction.disabled = false;
-      } else {
-        primaryAction.textContent = "Start session";
-        primaryAction.disabled = state.supportStatus === "unsupported";
+      primaryAction.textContent = state.intent ? "Stop session" : "Start session";
+      primaryAction.disabled = state.supportStatus === "unsupported" && !state.intent;
+
+      retryAction.hidden = !(state.supportStatus === "blocked" && state.intent);
+      retryAction.disabled = state.supportStatus === "unsupported";
+
+      lockLossCount.textContent = String(lockLosses);
+    };
+
+    const startFromControls = async () => {
+      const mode = getSelectedMode();
+
+      if (mode === "timer") {
+        const durationMs = getTimerDurationMs();
+        if (durationMs === null) {
+          return;
+        }
+
+        await engine.start("timer", durationMs);
+        return;
       }
+
+      await engine.start("indefinite");
+    };
+
+    const toggleStartStop = async () => {
+      const state = engine.getState();
+      if (state.intent) {
+        await engine.stop();
+        return;
+      }
+
+      await startFromControls();
+    };
+
+    const toggleMode = () => {
+      const nextMode = getSelectedMode() === "timer" ? "indefinite" : "timer";
+      modeInputs.forEach((input) => {
+        input.checked = input.value === nextMode;
+      });
+
+      if (nextMode === "timer" && !customMinutesInput.value.trim()) {
+        customMinutesInput.value = String(selectedPreset);
+      }
+
+      renderModeState();
+    };
+
+    const launchProfile = async (profile) => {
+      setSelectedProfileId(profile.id);
+      profileSelect.value = profile.id;
+      applyProfileToEditor(profile);
+      applyProfileToSessionControls(profile);
+
+      const currentState = engine.getState();
+      if (currentState.intent) {
+        await engine.stop();
+      }
+
+      if (profile.mode === "timer") {
+        const durationMinutes = normalizeCustomMinutes(profile.durationMinutes);
+        if (durationMinutes === null) {
+          setProfileFeedback("Profile timer duration is invalid.", "error");
+          return;
+        }
+
+        await engine.start("timer", durationMinutes * 60_000);
+      } else {
+        await engine.start("indefinite");
+      }
+
+      setProfileFeedback(`Launched ${profile.name}.`, "success");
     };
 
     setSelectedPreset(defaultPreset);
     customMinutesInput.value = String(defaultPreset);
+
+    renderProfiles({ applyToSession: true });
+    renderEventLog();
 
     presetButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -205,7 +556,7 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       if (normalized !== null && PRESET_MINUTES.includes(normalized)) {
         setSelectedPreset(normalized);
       } else {
-        presetButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
+        clearPresetSelection();
       }
     });
 
@@ -216,36 +567,127 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     });
 
     primaryAction.addEventListener("click", async () => {
-      const state = engine.getState();
+      await toggleStartStop();
+    });
 
-      if (state.intent) {
-        await engine.stop();
+    retryAction.addEventListener("click", async () => {
+      await engine.retry();
+    });
+
+    profileModeSelect.addEventListener("change", () => {
+      const mode = profileModeSelect.value === "timer" ? "timer" : "indefinite";
+      setProfileDurationEnabled(mode);
+    });
+
+    profileSelect.addEventListener("change", () => {
+      const selectedId = profileSelect.value;
+      if (selectedId === "__new") {
+        setSelectedProfileId(null);
+        applyProfileToEditor(null);
+        profileDelete.disabled = true;
+        profileSetDefault.disabled = true;
         return;
       }
 
-      const selectedMode = getSelectedMode();
+      setSelectedProfileId(selectedId);
+      const profile = profiles.find((item) => item.id === selectedId) ?? null;
+      applyProfileToEditor(profile);
+      applyProfileToSessionControls(profile);
+      profileDelete.disabled = !profile;
+      profileSetDefault.disabled = !profile || profile.isDefault;
+    });
 
-      if (selectedMode === "timer") {
-        const durationMs = getTimerDurationMs();
-        if (durationMs === null) {
-          return;
+    profileSave.addEventListener("click", () => {
+      try {
+        const profileInput = getProfileInput();
+
+        if (!selectedProfileId) {
+          const created = profileService.createProfile(profileInput);
+          setSelectedProfileId(created.id);
+          setProfileFeedback(`Created profile ${created.name}.`, "success");
+        } else {
+          const updated = profileService.updateProfile(selectedProfileId, profileInput);
+          setProfileFeedback(`Updated profile ${updated.name}.`, "success");
         }
 
-        await engine.start("timer", durationMs);
+        renderProfiles({ applyToSession: true });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to save profile.";
+        setProfileFeedback(message, "error");
+      }
+    });
+
+    profileDelete.addEventListener("click", () => {
+      if (!selectedProfileId) {
         return;
       }
 
-      await engine.start("indefinite");
+      try {
+        profileService.deleteProfile(selectedProfileId);
+        setSelectedProfileId(null);
+        setProfileFeedback("Profile deleted.", "success");
+        renderProfiles({ applyToSession: true });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to delete profile.";
+        setProfileFeedback(message, "error");
+      }
     });
 
-    const unsubscribe = engine.subscribe((state) => {
-      render(state);
+    profileSetDefault.addEventListener("click", () => {
+      if (!selectedProfileId) {
+        return;
+      }
+
+      try {
+        const defaultProfile = profileService.setDefaultProfile(selectedProfileId);
+        setProfileFeedback(`${defaultProfile.name} is now default.`, "success");
+        renderProfiles({ applyToSession: true });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to set default profile.";
+        setProfileFeedback(message, "error");
+      }
     });
 
-    render(engine.getState());
+    const shortcuts = createWakeShortcutController({
+      onToggleStartStop: () => {
+        void toggleStartStop();
+      },
+      onToggleMode: () => {
+        toggleMode();
+      },
+      onLaunchProfile: (index) => {
+        const profile = quickLaunchProfiles[index];
+        if (profile) {
+          void launchProfile(profile);
+        }
+      },
+      onRetry: () => {
+        void engine.retry();
+      },
+    });
+
+    const detachShortcuts = shortcuts.attach(window);
+
+    const unsubscribeState = engine.subscribe((state) => {
+      renderState(state);
+    });
+
+    const unsubscribeEvents = engine.subscribeEvents((event) => {
+      if (event.type === "released" && event.detail === "sentinel") {
+        lockLosses += 1;
+      }
+
+      eventHistory = [event, ...eventHistory].slice(0, 10);
+      renderEventLog();
+      lockLossCount.textContent = String(lockLosses);
+    });
+
+    renderState(engine.getState());
 
     window.addEventListener("pagehide", () => {
-      unsubscribe();
+      detachShortcuts();
+      unsubscribeState();
+      unsubscribeEvents();
       void engine.destroy();
     });
   };
@@ -267,22 +709,34 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
   }
 
   #awake-control-panel #awake-status-badge[data-status="active"] {
-    border-color: oklch(0.76 0.14 156);
-    color: oklch(0.86 0.12 156);
+    border-color: oklch(0.76 0.15 156);
+    color: oklch(0.9 0.14 156);
+    background: oklch(0.27 0.04 156);
   }
 
   #awake-control-panel #awake-status-badge[data-status="blocked"] {
-    border-color: oklch(0.66 0.2 20);
-    color: oklch(0.77 0.18 20);
+    border-color: oklch(0.69 0.2 20);
+    color: oklch(0.86 0.17 20);
+    background: oklch(0.3 0.05 20);
   }
 
   #awake-control-panel #awake-status-badge[data-status="unsupported"] {
-    border-color: oklch(0.77 0.13 84);
-    color: oklch(0.86 0.12 84);
+    border-color: oklch(0.8 0.13 84);
+    color: oklch(0.91 0.12 84);
+    background: oklch(0.32 0.04 84);
   }
 
   #awake-control-panel #awake-status-badge[data-status="released"] {
     border-color: var(--color-base-700);
-    color: var(--color-base-200);
+    color: var(--color-base-100);
+    background: var(--color-base-900);
+  }
+
+  #awake-profile-feedback[data-tone="error"] {
+    color: oklch(0.86 0.17 20);
+  }
+
+  #awake-profile-feedback[data-tone="success"] {
+    color: oklch(0.86 0.14 156);
   }
 </style>

@@ -2,6 +2,23 @@ export type WakeSupportStatus = "supported" | "unsupported" | "blocked";
 export type WakeSessionMode = "indefinite" | "timer";
 export type WakePlatform = "mac" | "windows" | "other";
 
+export type WakeSessionEventType =
+  | "started"
+  | "stopped"
+  | "acquired"
+  | "released"
+  | "blocked"
+  | "reacquire_attempt"
+  | "reacquire_success"
+  | "reacquire_failed"
+  | "timer_completed";
+
+export interface WakeSessionEvent {
+  type: WakeSessionEventType;
+  timestamp: number;
+  detail?: string;
+}
+
 export interface WakeSessionState {
   intent: boolean;
   hasActiveLock: boolean;
@@ -29,6 +46,8 @@ export interface WakeSessionEnvironment {
   now(): number;
   setInterval(callback: () => void, ms: number): unknown;
   clearInterval(handle: unknown): void;
+  setTimeout(callback: () => void, ms: number): unknown;
+  clearTimeout(handle: unknown): void;
   addVisibilityListener(callback: () => void): () => void;
   isVisible(): boolean;
   storage(): WakeStorage;
@@ -43,8 +62,10 @@ export interface CreateWakeSessionEngineOptions {
 export interface WakeSessionController {
   getState(): WakeSessionState;
   subscribe(listener: (state: WakeSessionState) => void): () => void;
+  subscribeEvents(listener: (event: WakeSessionEvent) => void): () => void;
   start(mode: WakeSessionMode, durationMs?: number): Promise<void>;
   stop(): Promise<void>;
+  retry(): Promise<void>;
   destroy(): Promise<void>;
 }
 
@@ -55,6 +76,8 @@ interface PersistedSessionIntent {
 }
 
 const DEFAULT_STORAGE_KEY = "awakemode:wake-session-intent";
+const REACQUIRE_BACKOFF_SEQUENCE = [500, 2000, 5000, 10000] as const;
+
 export const PRESET_MINUTES = [15, 30, 60, 120] as const;
 
 export function normalizeCustomMinutes(
@@ -192,6 +215,14 @@ function createBrowserEnvironment(): WakeSessionEnvironment {
       globalThis.clearInterval(handle as ReturnType<typeof globalThis.setInterval>);
     },
 
+    setTimeout(callback, ms) {
+      return globalThis.setTimeout(callback, ms);
+    },
+
+    clearTimeout(handle) {
+      globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>);
+    },
+
     addVisibilityListener(callback) {
       if (typeof document === "undefined") {
         return () => undefined;
@@ -269,11 +300,15 @@ export function createWakeSessionEngine(
 ): WakeSessionController {
   const env = options.environment ?? createBrowserEnvironment();
   const storageKey = options.storageKey ?? DEFAULT_STORAGE_KEY;
-  const listeners = new Set<(state: WakeSessionState) => void>();
+
+  const stateListeners = new Set<(state: WakeSessionState) => void>();
+  const eventListeners = new Set<(event: WakeSessionEvent) => void>();
 
   let wakeLock: WakeLockHandle | null = null;
   let endAt: number | null = null;
   let tickHandle: unknown = null;
+  let reacquireTimeoutHandle: unknown = null;
+  let reacquireAttempt = 0;
   let removeVisibilityListener: (() => void) | null = null;
 
   const state: WakeSessionState = {
@@ -287,9 +322,25 @@ export function createWakeSessionEngine(
   };
 
   function emitState() {
-    for (const listener of listeners) {
+    for (const listener of stateListeners) {
       listener({ ...state });
     }
+  }
+
+  function emitEvent(type: WakeSessionEventType, detail?: string) {
+    const event: WakeSessionEvent = {
+      type,
+      timestamp: env.now(),
+      detail,
+    };
+
+    for (const listener of eventListeners) {
+      listener(event);
+    }
+  }
+
+  function shouldAttemptWakeLock(): boolean {
+    return state.intent && state.supportStatus !== "unsupported" && env.isVisible();
   }
 
   function persistIntent() {
@@ -316,9 +367,41 @@ export function createWakeSessionEngine(
     tickHandle = null;
   }
 
-  async function releaseWakeLock() {
+  function clearReacquireTimeout() {
+    if (!reacquireTimeoutHandle) {
+      return;
+    }
+
+    env.clearTimeout(reacquireTimeoutHandle);
+    reacquireTimeoutHandle = null;
+  }
+
+  function scheduleReacquireAttempt() {
+    if (!shouldAttemptWakeLock()) {
+      return;
+    }
+
+    if (reacquireTimeoutHandle) {
+      return;
+    }
+
+    const delayMs =
+      REACQUIRE_BACKOFF_SEQUENCE[
+        Math.min(reacquireAttempt, REACQUIRE_BACKOFF_SEQUENCE.length - 1)
+      ];
+    reacquireAttempt += 1;
+
+    reacquireTimeoutHandle = env.setTimeout(() => {
+      reacquireTimeoutHandle = null;
+      void attemptReacquire("auto");
+    }, delayMs);
+  }
+
+  async function releaseWakeLock(reason: string) {
     const activeLock = wakeLock;
     wakeLock = null;
+    clearReacquireTimeout();
+    reacquireAttempt = 0;
 
     if (!activeLock) {
       state.hasActiveLock = false;
@@ -334,23 +417,7 @@ export function createWakeSessionEngine(
     }
 
     state.hasActiveLock = false;
-  }
-
-  async function completeTimerSession() {
-    state.intent = false;
-    state.remainingMs = 0;
-    state.lastError = null;
-    endAt = null;
-    persistIntent();
-
-    clearTicker();
-    await releaseWakeLock();
-
-    if (state.supportStatus !== "unsupported") {
-      state.supportStatus = "supported";
-    }
-
-    emitState();
+    emitEvent("released", reason);
   }
 
   function updateRemainingTime() {
@@ -360,6 +427,29 @@ export function createWakeSessionEngine(
     }
 
     state.remainingMs = Math.max(0, endAt - env.now());
+  }
+
+  async function completeTimerSession() {
+    state.intent = false;
+    state.remainingMs = 0;
+    state.lastError = null;
+    endAt = null;
+
+    persistIntent();
+    clearTicker();
+    clearReacquireTimeout();
+    reacquireAttempt = 0;
+
+    emitEvent("timer_completed");
+    emitEvent("stopped", "timer");
+
+    await releaseWakeLock("timer");
+
+    if (state.supportStatus !== "unsupported") {
+      state.supportStatus = "supported";
+    }
+
+    emitState();
   }
 
   function ensureTicker() {
@@ -389,22 +479,18 @@ export function createWakeSessionEngine(
     }, 1000);
   }
 
-  async function acquireWakeLock() {
-    if (!state.intent || state.supportStatus === "unsupported") {
-      return;
+  async function acquireWakeLock(reason: string): Promise<boolean> {
+    if (!shouldAttemptWakeLock()) {
+      return false;
     }
 
     if (state.hasActiveLock) {
-      return;
-    }
-
-    if (!env.isVisible()) {
-      return;
+      return true;
     }
 
     if (state.mode === "timer" && endAt !== null && endAt <= env.now()) {
       await completeTimerSession();
-      return;
+      return false;
     }
 
     try {
@@ -413,30 +499,56 @@ export function createWakeSessionEngine(
       state.hasActiveLock = true;
       state.supportStatus = "supported";
       state.lastError = null;
+      emitEvent("acquired", reason);
 
       requestedLock.onRelease?.(() => {
+        if (wakeLock !== requestedLock) {
+          return;
+        }
+
         wakeLock = null;
         state.hasActiveLock = false;
+        emitEvent("released", "sentinel");
         emitState();
 
-        if (!state.intent) {
-          return;
+        if (state.intent && env.isVisible()) {
+          scheduleReacquireAttempt();
         }
-
-        if (!env.isVisible()) {
-          return;
-        }
-
-        void acquireWakeLock();
       });
+
+      clearReacquireTimeout();
+      reacquireAttempt = 0;
+      emitState();
+      return true;
     } catch (error) {
       wakeLock = null;
       state.hasActiveLock = false;
       state.supportStatus = "blocked";
       state.lastError = normalizeError(error);
+      emitEvent("blocked", state.lastError);
+      emitState();
+      return false;
+    }
+  }
+
+  async function attemptReacquire(trigger: "auto" | "manual"): Promise<boolean> {
+    if (!shouldAttemptWakeLock()) {
+      return false;
     }
 
-    emitState();
+    emitEvent("reacquire_attempt", trigger);
+
+    const acquired = await acquireWakeLock("reacquire");
+    if (acquired) {
+      emitEvent("reacquire_success", trigger);
+      reacquireAttempt = 0;
+      clearReacquireTimeout();
+      return true;
+    }
+
+    emitEvent("reacquire_failed", state.lastError ?? "Wake lock request failed.");
+    scheduleReacquireAttempt();
+    return false;
   }
 
   async function restoreIntentFromStorage() {
@@ -471,7 +583,11 @@ export function createWakeSessionEngine(
     }
 
     emitState();
-    await acquireWakeLock();
+
+    const acquired = await acquireWakeLock("restore");
+    if (!acquired) {
+      scheduleReacquireAttempt();
+    }
   }
 
   removeVisibilityListener = env.addVisibilityListener(() => {
@@ -483,7 +599,11 @@ export function createWakeSessionEngine(
       return;
     }
 
-    void acquireWakeLock();
+    if (state.hasActiveLock) {
+      return;
+    }
+
+    void attemptReacquire("auto");
   });
 
   void restoreIntentFromStorage();
@@ -494,8 +614,13 @@ export function createWakeSessionEngine(
     },
 
     subscribe(listener) {
-      listeners.add(listener);
-      return () => listeners.delete(listener);
+      stateListeners.add(listener);
+      return () => stateListeners.delete(listener);
+    },
+
+    subscribeEvents(listener) {
+      eventListeners.add(listener);
+      return () => eventListeners.delete(listener);
     },
 
     async start(mode, durationMs) {
@@ -511,6 +636,7 @@ export function createWakeSessionEngine(
       }
 
       state.intent = true;
+      emitEvent("started", mode);
 
       if (mode === "timer") {
         if (!isValidDuration(durationMs)) {
@@ -528,7 +654,11 @@ export function createWakeSessionEngine(
 
       persistIntent();
       emitState();
-      await acquireWakeLock();
+
+      const acquired = await acquireWakeLock("start");
+      if (!acquired) {
+        scheduleReacquireAttempt();
+      }
     },
 
     async stop() {
@@ -536,10 +666,14 @@ export function createWakeSessionEngine(
       state.remainingMs = null;
       state.lastError = null;
       endAt = null;
-      persistIntent();
 
+      persistIntent();
       clearTicker();
-      await releaseWakeLock();
+      clearReacquireTimeout();
+      reacquireAttempt = 0;
+
+      emitEvent("stopped", "manual");
+      await releaseWakeLock("manual");
 
       if (state.supportStatus !== "unsupported") {
         state.supportStatus = "supported";
@@ -548,12 +682,24 @@ export function createWakeSessionEngine(
       emitState();
     },
 
+    async retry() {
+      if (!state.intent || state.supportStatus === "unsupported") {
+        return;
+      }
+
+      clearReacquireTimeout();
+      reacquireAttempt = 0;
+      await attemptReacquire("manual");
+    },
+
     async destroy() {
       clearTicker();
+      clearReacquireTimeout();
       removeVisibilityListener?.();
       removeVisibilityListener = null;
-      listeners.clear();
-      await releaseWakeLock();
+      stateListeners.clear();
+      eventListeners.clear();
+      await releaseWakeLock("destroy");
     },
   };
 }

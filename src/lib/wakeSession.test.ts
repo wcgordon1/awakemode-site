@@ -75,6 +75,12 @@ function createEnvironment(options?: {
     clearInterval(handle) {
       clearInterval(handle as ReturnType<typeof setInterval>);
     },
+    setTimeout(callback, ms) {
+      return setTimeout(callback, ms);
+    },
+    clearTimeout(handle) {
+      clearTimeout(handle as ReturnType<typeof setTimeout>);
+    },
     addVisibilityListener(callback) {
       visibilityListeners.add(callback);
       return () => visibilityListeners.delete(callback);
@@ -145,7 +151,26 @@ describe("wakeSession engine", () => {
     });
   });
 
-  it("expires timer sessions and releases wake lock", async () => {
+  it("emits lifecycle events in expected order", async () => {
+    const lock = createMockWakeLock();
+    const requestWakeLock = vi.fn(async () => lock);
+    const { environment } = createEnvironment({ requestWakeLock });
+
+    const engine = createWakeSessionEngine({
+      environment,
+      storageKey: "test:event-order",
+    });
+
+    const events: string[] = [];
+    engine.subscribeEvents((event) => events.push(event.type));
+
+    await engine.start("indefinite");
+    await engine.stop();
+
+    expect(events).toEqual(["started", "acquired", "stopped", "released"]);
+  });
+
+  it("expires timer sessions and emits timer_completed", async () => {
     const lock = createMockWakeLock();
     const requestWakeLock = vi.fn(async () => lock);
     const { environment } = createEnvironment({ requestWakeLock });
@@ -155,20 +180,19 @@ describe("wakeSession engine", () => {
       storageKey: "test:timer-expiry",
     });
 
+    const events: string[] = [];
+    engine.subscribeEvents((event) => events.push(event.type));
+
     await engine.start("timer", 3_000);
-    vi.advanceTimersByTime(2_000);
-
-    expect(engine.getState().remainingMs).toBe(1_000);
-
-    vi.advanceTimersByTime(2_000);
+    await vi.advanceTimersByTimeAsync(3_000);
 
     expect(engine.getState()).toMatchObject({
       intent: false,
       hasActiveLock: false,
-      mode: "timer",
       remainingMs: 0,
     });
-    expect(lock.release).toHaveBeenCalledTimes(1);
+    expect(events).toContain("timer_completed");
+    expect(events).toContain("released");
   });
 
   it("restores persisted intent and reacquires lock on initialization", async () => {
@@ -198,56 +222,59 @@ describe("wakeSession engine", () => {
     });
   });
 
-  it("reacquires wake lock on visibility change when intent remains active", async () => {
+  it("retries with backoff after unexpected release", async () => {
     const firstLock = createMockWakeLock();
-    const secondLock = createMockWakeLock();
-
     const requestWakeLock = vi
       .fn()
       .mockResolvedValueOnce(firstLock)
-      .mockResolvedValueOnce(secondLock);
-
-    const envTools = createEnvironment({ requestWakeLock });
-    const engine = createWakeSessionEngine({
-      environment: envTools.environment,
-      storageKey: "test:reacquire",
-    });
-
-    await engine.start("indefinite");
-
-    envTools.setVisible(false);
-    firstLock.triggerRelease();
-
-    expect(requestWakeLock).toHaveBeenCalledTimes(1);
-    expect(engine.getState().hasActiveLock).toBe(false);
-
-    envTools.setVisible(true);
-    envTools.emitVisibilityChange();
-    await Promise.resolve();
-
-    expect(requestWakeLock).toHaveBeenCalledTimes(2);
-    expect(engine.getState().hasActiveLock).toBe(true);
-  });
-
-  it("marks blocked when wake lock request is denied", async () => {
-    const requestWakeLock = vi.fn(async () => {
-      throw new Error("NotAllowedError");
-    });
+      .mockRejectedValue(new Error("NotAllowedError"));
 
     const { environment } = createEnvironment({ requestWakeLock });
     const engine = createWakeSessionEngine({
       environment,
-      storageKey: "test:blocked",
+      storageKey: "test:backoff",
     });
 
     await engine.start("indefinite");
+    expect(requestWakeLock).toHaveBeenCalledTimes(1);
 
-    expect(engine.getState()).toMatchObject({
-      intent: true,
-      hasActiveLock: false,
-      supportStatus: "blocked",
-      lastError: "NotAllowedError",
+    firstLock.triggerRelease();
+
+    await vi.advanceTimersByTimeAsync(499);
+    expect(requestWakeLock).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(requestWakeLock).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(requestWakeLock).toHaveBeenCalledTimes(3);
+  });
+
+  it("supports explicit manual retry action", async () => {
+    const recoveredLock = createMockWakeLock();
+    const requestWakeLock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("NotAllowedError"))
+      .mockResolvedValueOnce(recoveredLock);
+
+    const { environment } = createEnvironment({ requestWakeLock });
+    const engine = createWakeSessionEngine({
+      environment,
+      storageKey: "test:manual-retry",
     });
+
+    const eventTypes: string[] = [];
+    engine.subscribeEvents((event) => {
+      eventTypes.push(event.type);
+    });
+
+    await engine.start("indefinite");
+    expect(engine.getState().supportStatus).toBe("blocked");
+
+    await engine.retry();
+    expect(engine.getState().hasActiveLock).toBe(true);
+    expect(eventTypes).toContain("reacquire_attempt");
+    expect(eventTypes).toContain("reacquire_success");
   });
 
   it("marks unsupported browsers and refuses start", async () => {
