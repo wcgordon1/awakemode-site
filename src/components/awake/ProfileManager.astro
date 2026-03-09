@@ -1,6 +1,6 @@
 <div class="space-y-4 rounded-xl border border-base-700 bg-base-900/70 p-4">
   <div class="flex items-center justify-between">
-    <p class="text-xs uppercase tracking-wider text-base-300">Session profiles</p>
+    <p class="awake-kicker text-xs uppercase tracking-wider text-base-300">Session profiles</p>
     <div class="flex items-center gap-2">
       <p id="awake-profile-count" class="text-xs text-base-500"></p>
       <button
@@ -17,7 +17,7 @@
 
   <div class="grid gap-3 sm:grid-cols-2">
     <label class="flex flex-col gap-2">
-      <span class="text-xs text-base-400">Select profile</span>
+      <span class="awake-label text-xs text-base-400">Select profile</span>
       <div id="awake-profile-select-control" class="relative">
         <input id="awake-profile-select" type="hidden" value="__new" />
         <button
@@ -42,7 +42,7 @@
     </label>
 
     <label id="awake-profile-name-field" class="flex flex-col gap-2">
-      <span class="text-xs text-base-400">Name</span>
+      <span class="awake-label text-xs text-base-400">Name</span>
       <input
         id="awake-profile-name"
         type="text"
@@ -55,7 +55,7 @@
 
   <div class="grid gap-3 sm:grid-cols-2">
     <label class="flex flex-col gap-2">
-      <span class="text-xs text-base-400">Profile mode</span>
+      <span class="awake-label text-xs text-base-400">Profile mode</span>
       <select
         id="awake-profile-mode"
         class="awake-select rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-white focus:border-accent-300 focus:ring-accent-300"
@@ -66,7 +66,7 @@
     </label>
 
     <label class="flex flex-col gap-2">
-      <span class="text-xs text-base-400">Duration (minutes)</span>
+      <span class="awake-label text-xs text-base-400">Duration (minutes)</span>
       <input
         id="awake-profile-duration"
         type="number"

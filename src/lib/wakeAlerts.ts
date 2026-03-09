@@ -62,7 +62,14 @@ export function createTenSecondAlertTracker(thresholdMs = 10_000): TenSecondAler
   };
 }
 
-export async function playTripleBeep(options: TripleBeepOptions = {}): Promise<void> {
+async function playBeepSequence(
+  beepCount: number,
+  options: TripleBeepOptions = {},
+): Promise<void> {
+  if (beepCount <= 0) {
+    return;
+  }
+
   if (typeof window === "undefined") {
     return;
   }
@@ -102,7 +109,7 @@ export async function playTripleBeep(options: TripleBeepOptions = {}): Promise<v
 
   const startAt = audioContext.currentTime;
 
-  for (let index = 0; index < 3; index += 1) {
+  for (let index = 0; index < beepCount; index += 1) {
     const offset = index * (durationSeconds + gapSeconds);
 
     const oscillator = audioContext.createOscillator();
@@ -124,8 +131,19 @@ export async function playTripleBeep(options: TripleBeepOptions = {}): Promise<v
     oscillator.stop(startAt + offset + durationSeconds);
   }
 
-  const closeDelayMs = Math.ceil((3 * durationSeconds + 2 * gapSeconds + 0.2) * 1000);
+  const closeDelayMs = Math.ceil(
+    (beepCount * durationSeconds + Math.max(0, beepCount - 1) * gapSeconds + 0.2) *
+      1000,
+  );
   window.setTimeout(() => {
     void audioContext.close().catch(() => undefined);
   }, closeDelayMs);
+}
+
+export async function playSingleBeep(options: TripleBeepOptions = {}): Promise<void> {
+  await playBeepSequence(1, options);
+}
+
+export async function playTripleBeep(options: TripleBeepOptions = {}): Promise<void> {
+  await playBeepSequence(3, options);
 }

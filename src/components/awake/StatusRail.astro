@@ -5,7 +5,7 @@ import PlatformHint from "@/components/awake/PlatformHint.astro";
 <div class="space-y-4">
   
   <div class="rounded-xl border border-base-700 bg-base-900/80 p-4">
-    <p class="text-xs uppercase tracking-wider text-base-400">Reliability</p>
+    <p class="awake-kicker text-xs uppercase tracking-wider text-base-400">Reliability</p>
     <p class="mt-3 text-sm text-base-300">
       Lock losses this session:
       <span id="awake-lock-loss-count" class="font-medium text-white">0</span>
@@ -13,12 +13,24 @@ import PlatformHint from "@/components/awake/PlatformHint.astro";
   </div>
 
   <div class="rounded-xl border border-base-700 bg-base-900/80 p-4">
-    <p class="text-xs uppercase tracking-wider text-base-400">Event log</p>
-    <ol id="awake-event-log" class="mt-3 space-y-2 text-xs text-base-300"></ol>
+    <p class="awake-kicker text-xs uppercase tracking-wider text-base-400">Event log</p>
+    <div class="mt-3 overflow-x-auto">
+      <table class="w-full table-fixed border-collapse text-xs text-base-300">
+        <thead>
+          <tr class="text-[10px] uppercase tracking-wider text-base-500">
+            <th class="w-[48%] py-1.5 pr-5 text-left font-medium">Event</th>
+            <th class="w-[17%] py-1.5 pr-5 text-left font-medium">Time</th>
+            <th class="w-[15%] py-1.5 pr-5 text-left font-medium">Duration</th>
+            <th class="w-[20%] py-1.5 text-left font-medium">Detail</th>
+          </tr>
+        </thead>
+        <tbody id="awake-event-log"></tbody>
+      </table>
+    </div>
   </div>
 
   <div class="rounded-xl border border-base-700 bg-base-900/80 p-4">
-    <p class="text-xs uppercase tracking-wider text-base-400">Fallback help</p>
+    <p class="awake-kicker text-xs uppercase tracking-wider text-base-400">Fallback help</p>
     <div class="mt-3">
       <PlatformHint />
     </div>
