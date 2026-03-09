@@ -1,7 +1,6 @@
 ---
 import CapabilityBanner from "@/components/awake/CapabilityBanner.astro";
 import CustomTimerInput from "@/components/awake/CustomTimerInput.astro";
-import PlatformHint from "@/components/awake/PlatformHint.astro";
 import PrimarySessionAction from "@/components/awake/PrimarySessionAction.astro";
 import ProfileManager from "@/components/awake/ProfileManager.astro";
 import ProfileQuickLaunch from "@/components/awake/ProfileQuickLaunch.astro";
@@ -108,17 +107,11 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
             <header class="mb-4 space-y-1">
               <p class="awake-settings-title text-sm font-semibold text-base-100">Support</p>
               <p class="text-xs text-base-500">
-                Keyboard controls and fallback guidance when wake lock is blocked.
+                Keyboard controls for fast session management.
               </p>
             </header>
             <div class="space-y-4">
               <ShortcutHints />
-              <div class="rounded-xl border border-base-700 bg-base-900/80 p-4">
-                <p class="awake-kicker text-xs uppercase tracking-wider text-base-400">Fallback help</p>
-                <div class="mt-3">
-                  <PlatformHint />
-                </div>
-              </div>
             </div>
           </section>
         </div>
@@ -186,11 +179,6 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
     const clientMetadata = panel.querySelector("#awake-client-metadata");
     const beepAlertToggle = panel.querySelector("#awake-beep-alert-toggle");
 
-    const platformHint = panel.querySelector("#awake-platform-hint");
-    const macHint = panel.querySelector("#awake-mac-hint");
-    const windowsHint = panel.querySelector("#awake-windows-hint");
-    const otherHint = panel.querySelector("#awake-other-hint");
-
     const quickLaunchContainer = panel.querySelector("#awake-quick-launch");
     const profileSelectControl = panel.querySelector("#awake-profile-select-control");
     const profileSelect = panel.querySelector("#awake-profile-select");
@@ -230,10 +218,6 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       !settingsDrawer ||
       !clientMetadata ||
       !beepAlertToggle ||
-      !platformHint ||
-      !macHint ||
-      !windowsHint ||
-      !otherHint ||
       !quickLaunchContainer ||
       !profileSelectControl ||
       !profileSelect ||
@@ -707,13 +691,6 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
       statusBadge.setAttribute("data-status", label.toLowerCase());
     };
 
-    const applyFallbackHints = (shouldShow, platform) => {
-      platformHint.hidden = !shouldShow;
-      macHint.hidden = platform !== "mac";
-      windowsHint.hidden = platform !== "windows";
-      otherHint.hidden = platform !== "other";
-    };
-
     const renderEventLog = () => {
       eventLog.innerHTML = "";
 
@@ -802,11 +779,6 @@ import TimerPresets from "@/components/awake/TimerPresets.astro";
         timerRemaining.hidden = true;
         timerRemaining.textContent = "";
       }
-
-      const showFallback =
-        state.supportStatus === "unsupported" ||
-        (state.supportStatus === "blocked" && state.intent);
-      applyFallbackHints(showFallback, state.platform);
 
       if (state.supportStatus === "unsupported") {
         applyBadgeStatus("Unsupported");
