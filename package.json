@@ -8,7 +8,9 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.13",
@@ -21,5 +23,8 @@
     "astro": "^5.16.6",
     "tailwind-scrollbar-hide": "^4.0.0",
     "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
   }
 }

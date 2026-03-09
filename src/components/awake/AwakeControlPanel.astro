@@ -1,0 +1,288 @@
+---
+import CapabilityBanner from "@/components/awake/CapabilityBanner.astro";
+import CustomTimerInput from "@/components/awake/CustomTimerInput.astro";
+import PlatformHint from "@/components/awake/PlatformHint.astro";
+import PrimarySessionAction from "@/components/awake/PrimarySessionAction.astro";
+import SessionModeSelector from "@/components/awake/SessionModeSelector.astro";
+import SessionStatusBadge from "@/components/awake/SessionStatusBadge.astro";
+import TimerPresets from "@/components/awake/TimerPresets.astro";
+---
+
+<div id="awake-control-panel" class="mx-auto mt-12 w-full max-w-2xl">
+  <div class="rounded-3xl border border-base-700 bg-base-950/70 p-6 shadow-massive backdrop-blur-xl">
+    <div class="space-y-6 text-left">
+      <CapabilityBanner />
+      <SessionStatusBadge />
+
+      <div class="space-y-3">
+        <p class="text-xs uppercase tracking-wider text-base-400">Session mode</p>
+        <SessionModeSelector />
+      </div>
+
+      <div id="awake-timer-controls" class="space-y-4">
+        <div class="space-y-2">
+          <p class="text-xs uppercase tracking-wider text-base-400">Timer presets</p>
+          <TimerPresets />
+        </div>
+        <CustomTimerInput />
+      </div>
+
+      <PrimarySessionAction />
+      <PlatformHint />
+    </div>
+  </div>
+</div>
+
+<script>
+  import {
+    PRESET_MINUTES,
+    createWakeSessionEngine,
+    formatDurationMs,
+    normalizeCustomMinutes,
+  } from "../../lib/wakeSession";
+
+  const setupAwakeControlPanel = () => {
+    const panel = document.getElementById("awake-control-panel");
+    if (!panel) {
+      return;
+    }
+
+    const capabilityBanner = panel.querySelector("#awake-capability-banner");
+    const statusBadge = panel.querySelector("#awake-status-badge");
+    const statusDetail = panel.querySelector("#awake-status-detail");
+    const timerRemaining = panel.querySelector("#awake-timer-remaining");
+    const timerControls = panel.querySelector("#awake-timer-controls");
+    const primaryAction = panel.querySelector("#awake-primary-action");
+    const modeInputs = panel.querySelectorAll('input[name="awake-session-mode"]');
+    const presetButtons = panel.querySelectorAll("[data-timer-preset]");
+    const customMinutesInput = panel.querySelector("#awake-custom-minutes");
+
+    const platformHint = panel.querySelector("#awake-platform-hint");
+    const macHint = panel.querySelector("#awake-mac-hint");
+    const windowsHint = panel.querySelector("#awake-windows-hint");
+    const otherHint = panel.querySelector("#awake-other-hint");
+
+    if (
+      !capabilityBanner ||
+      !statusBadge ||
+      !statusDetail ||
+      !timerRemaining ||
+      !timerControls ||
+      !primaryAction ||
+      !modeInputs.length ||
+      !presetButtons.length ||
+      !customMinutesInput ||
+      !platformHint ||
+      !macHint ||
+      !windowsHint ||
+      !otherHint
+    ) {
+      return;
+    }
+
+    const engine = createWakeSessionEngine();
+    const defaultPreset = PRESET_MINUTES.includes(30) ? 30 : PRESET_MINUTES[0];
+    let selectedPreset = defaultPreset;
+
+    const getSelectedMode = () => {
+      const selected = [...modeInputs].find((input) => input.checked);
+      return selected?.value === "timer" ? "timer" : "indefinite";
+    };
+
+    const setSelectedPreset = (minutes) => {
+      selectedPreset = minutes;
+      presetButtons.forEach((button) => {
+        const value = Number(button.getAttribute("data-timer-preset"));
+        button.setAttribute("aria-pressed", String(value === minutes));
+      });
+    };
+
+    const renderModeState = () => {
+      const isTimer = getSelectedMode() === "timer";
+      timerControls.hidden = !isTimer;
+    };
+
+    const getTimerDurationMs = () => {
+      const rawValue = customMinutesInput.value.trim();
+      if (!rawValue) {
+        customMinutesInput.setCustomValidity("");
+        return selectedPreset * 60_000;
+      }
+
+      const normalized = normalizeCustomMinutes(rawValue);
+      if (normalized === null) {
+        customMinutesInput.setCustomValidity("Enter a value between 1 and 1440 minutes.");
+        customMinutesInput.reportValidity();
+        return null;
+      }
+
+      customMinutesInput.setCustomValidity("");
+      return normalized * 60_000;
+    };
+
+    const applyBadgeStatus = (label) => {
+      statusBadge.textContent = label;
+      statusBadge.setAttribute("data-status", label.toLowerCase());
+    };
+
+    const applyFallbackHints = (shouldShow, platform) => {
+      platformHint.hidden = !shouldShow;
+      macHint.hidden = platform !== "mac";
+      windowsHint.hidden = platform !== "windows";
+      otherHint.hidden = platform !== "other";
+    };
+
+    const render = (state) => {
+      modeInputs.forEach((input) => {
+        input.checked = input.value === state.mode;
+      });
+
+      capabilityBanner.hidden = state.supportStatus !== "unsupported";
+      renderModeState();
+
+      if (state.mode === "timer" && state.intent && state.remainingMs !== null) {
+        timerRemaining.hidden = false;
+        timerRemaining.textContent = `Time left: ${formatDurationMs(state.remainingMs)}`;
+      } else {
+        timerRemaining.hidden = true;
+        timerRemaining.textContent = "";
+      }
+
+      const showFallback =
+        state.supportStatus === "unsupported" ||
+        (state.supportStatus === "blocked" && state.intent);
+      applyFallbackHints(showFallback, state.platform);
+
+      if (state.supportStatus === "unsupported") {
+        applyBadgeStatus("Unsupported");
+        statusDetail.textContent =
+          "Screen Wake Lock is unavailable in this browser. Use Chromium for AwakeMode sessions.";
+      } else if (state.hasActiveLock) {
+        applyBadgeStatus("Active");
+        statusDetail.textContent =
+          state.mode === "timer"
+            ? "Wake lock is active and the countdown is running."
+            : "Wake lock is active until you stop this session.";
+      } else if (state.supportStatus === "blocked" && state.intent) {
+        applyBadgeStatus("Blocked");
+        statusDetail.textContent = state.lastError
+          ? `Wake lock request was blocked: ${state.lastError}`
+          : "Wake lock request was blocked by browser or system policy.";
+      } else {
+        applyBadgeStatus("Released");
+        statusDetail.textContent =
+          state.mode === "timer" && state.remainingMs === 0
+            ? "Timer completed and wake lock was released."
+            : "No active wake lock session.";
+      }
+
+      if (state.intent) {
+        primaryAction.textContent = "Stop session";
+        primaryAction.disabled = false;
+      } else {
+        primaryAction.textContent = "Start session";
+        primaryAction.disabled = state.supportStatus === "unsupported";
+      }
+    };
+
+    setSelectedPreset(defaultPreset);
+    customMinutesInput.value = String(defaultPreset);
+
+    presetButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const presetValue = Number(button.getAttribute("data-timer-preset"));
+        if (!Number.isFinite(presetValue)) {
+          return;
+        }
+
+        setSelectedPreset(presetValue);
+        customMinutesInput.value = String(presetValue);
+      });
+    });
+
+    customMinutesInput.addEventListener("input", () => {
+      const normalized = normalizeCustomMinutes(customMinutesInput.value.trim());
+      if (normalized !== null && PRESET_MINUTES.includes(normalized)) {
+        setSelectedPreset(normalized);
+      } else {
+        presetButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
+      }
+    });
+
+    modeInputs.forEach((input) => {
+      input.addEventListener("change", () => {
+        renderModeState();
+      });
+    });
+
+    primaryAction.addEventListener("click", async () => {
+      const state = engine.getState();
+
+      if (state.intent) {
+        await engine.stop();
+        return;
+      }
+
+      const selectedMode = getSelectedMode();
+
+      if (selectedMode === "timer") {
+        const durationMs = getTimerDurationMs();
+        if (durationMs === null) {
+          return;
+        }
+
+        await engine.start("timer", durationMs);
+        return;
+      }
+
+      await engine.start("indefinite");
+    });
+
+    const unsubscribe = engine.subscribe((state) => {
+      render(state);
+    });
+
+    render(engine.getState());
+
+    window.addEventListener("pagehide", () => {
+      unsubscribe();
+      void engine.destroy();
+    });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupAwakeControlPanel, {
+      once: true,
+    });
+  } else {
+    setupAwakeControlPanel();
+  }
+</script>
+
+<style>
+  #awake-control-panel [data-timer-preset][aria-pressed="true"] {
+    border-color: var(--color-accent-300);
+    background-color: var(--color-base-800);
+    color: var(--color-base-50);
+  }
+
+  #awake-control-panel #awake-status-badge[data-status="active"] {
+    border-color: oklch(0.76 0.14 156);
+    color: oklch(0.86 0.12 156);
+  }
+
+  #awake-control-panel #awake-status-badge[data-status="blocked"] {
+    border-color: oklch(0.66 0.2 20);
+    color: oklch(0.77 0.18 20);
+  }
+
+  #awake-control-panel #awake-status-badge[data-status="unsupported"] {
+    border-color: oklch(0.77 0.13 84);
+    color: oklch(0.86 0.12 84);
+  }
+
+  #awake-control-panel #awake-status-badge[data-status="released"] {
+    border-color: var(--color-base-700);
+    color: var(--color-base-200);
+  }
+</style>

@@ -1,0 +1,17 @@
+---
+const presets = [15, 30, 60, 120];
+---
+
+<div class="flex flex-wrap gap-2" aria-label="Timer presets">
+  {
+    presets.map((minutes) => (
+      <button
+        type="button"
+        data-timer-preset={minutes}
+        class="awake-timer-preset rounded-lg border border-base-700 px-3 py-2 text-sm text-base-200 transition hover:text-white hover:border-accent-300"
+      >
+        {minutes}m
+      </button>
+    ))
+  }
+</div>

@@ -3,9 +3,11 @@
 import Text from "@/components/fundations/elements/Text.astro";
 import Button from "@/components/fundations/elements/Button.astro";
 import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+// Awake controls
+import AwakeControlPanel from "@/components/awake/AwakeControlPanel.astro";
 ---
 
-<section>
+<section id="awake-control" class="scroll-mt-24">
   <Wrapper variant="standard" class="pb-12 pt-48">
     <div
       class="mx-auto text-center"
@@ -20,8 +22,10 @@ import Wrapper from "@/components/fundations/containers/Wrapper.astro";
       <Text tag="p" variant="textXL" class="mt-4 text-base-300"
         >Chromium-first wake sessions for focused work, downloads, and demos.</Text
       >
-      <div class="flex flex-wrap justify-center gap-3 mt-12">
-        <Button href="/sign-up" size="lg" variant="accent">Start a session</Button>
+
+      <AwakeControlPanel />
+
+      <div class="flex flex-wrap justify-center gap-3 mt-10">
         <Button href="#how-it-works" size="lg" variant="muted">How it works</Button>
       </div>
     </div>

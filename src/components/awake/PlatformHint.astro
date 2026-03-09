@@ -1,0 +1,17 @@
+---
+import MacHint from "@/components/awake/MacHint.astro";
+import WindowsHint from "@/components/awake/WindowsHint.astro";
+---
+
+<div id="awake-platform-hint" class="space-y-2" hidden>
+  <p class="text-xs uppercase tracking-wider text-base-400">Fallback options</p>
+  <div id="awake-mac-hint" hidden>
+    <MacHint />
+  </div>
+  <div id="awake-windows-hint" hidden>
+    <WindowsHint />
+  </div>
+  <p id="awake-other-hint" class="text-sm text-base-300" hidden>
+    Use your OS power settings to temporarily disable sleep while this task runs.
+  </p>
+</div>
