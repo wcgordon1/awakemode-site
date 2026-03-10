@@ -7,12 +7,29 @@ import Wrapper from "@/components/fundations/containers/Wrapper.astro";
 import EntriesOne from "@/components/blog/BlogCard.astro";
 // Content
 import { getCollection } from "astro:content";
+import { createBlogIndexSchema, SITE_NAME, toAbsoluteUrl } from "@/lib/seo";
 const allPosts = (await getCollection("posts")).sort(
   (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime()
 );
+const blogSchema = createBlogIndexSchema(
+  allPosts.map((post) => ({
+    name: post.data.title,
+    url: toAbsoluteUrl(`/blog/posts/${post.slug}`),
+    datePublished: post.data.pubDate,
+  }))
+);
 ---
 
-<BaseLayout>
+<BaseLayout
+  seo={{
+    title: `${SITE_NAME} Journal`,
+    description:
+      "Product updates and practical guides for reliable keep-awake workflows.",
+    canonical: Astro.url.toString(),
+    type: "website",
+    structuredData: [blogSchema],
+  }}
+>
   <section class="relative overflow-hidden">
     <Wrapper variant="standard" class="pb-12 pt-48">
       <div

@@ -3,10 +3,17 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import Text from "@/components/fundations/elements/Text.astro";
 import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+import { SITE_NAME } from "@/lib/seo";
 const { frontmatter } = Astro.props;
 ---
 
-<BaseLayout>
+<BaseLayout
+  seo={{
+    title: `${frontmatter.page} | ${SITE_NAME}`,
+    description: `${frontmatter.page} policy and legal information for AwakeMode users.`,
+    canonical: Astro.url.toString(),
+  }}
+>
   <section>
     <Wrapper variant="standard" class="pb-12 pt-48">
       <Wrapper

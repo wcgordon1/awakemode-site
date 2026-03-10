@@ -1,32 +1,46 @@
 ---
 import { AstroSeo } from "@astrolib/seo";
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_TITLE,
+  SITE_NAME,
+  toAbsoluteUrl,
+} from "@/lib/seo";
+
+const { seo = {} } = Astro.props;
+const title = seo.title ?? `${SITE_NAME} | ${DEFAULT_TITLE}`;
+const description = seo.description ?? DEFAULT_DESCRIPTION;
+const canonical = seo.canonical ?? Astro.url.toString();
+const openGraphImage = seo.image
+  ? {
+      url: toAbsoluteUrl(seo.image.url),
+      width: seo.image.width ?? DEFAULT_OG_IMAGE.width,
+      height: seo.image.height ?? DEFAULT_OG_IMAGE.height,
+      alt: seo.image.alt ?? DEFAULT_OG_IMAGE.alt,
+      type: seo.image.type ?? DEFAULT_OG_IMAGE.type,
+    }
+  : DEFAULT_OG_IMAGE;
+const openGraphType = seo.type ?? "website";
+const twitterHandle = seo.twitterHandle ?? "@AwakeModeApp";
 ---
 
 <AstroSeo
-  title="AwakeMode | Keep your computer awake"
-  description="AwakeMode keeps your computer awake while browser sessions, downloads, renders, and automations are running."
-  canonical="https://awakemode.com"
+  title={title}
+  description={description}
+  canonical={canonical}
   openGraph={{
-    url: "https://awakemode.com",
-    title: "AwakeMode | Keep your computer awake",
-    description:
-      "Browser-first keep-awake control with a path to extension-level power.",
-    images: [
-      {
-        url: "https://awakemode.com/icon.svg",
-        width: 512,
-        height: 512,
-        alt: "AwakeMode logo",
-        type: "image/svg+xml",
-      },
-    ],
-    site_name: "AwakeMode",
-    type: "website",
+    url: canonical,
+    title,
+    description,
+    images: [openGraphImage],
+    site_name: SITE_NAME,
+    type: openGraphType,
     locale: "en_US",
   }}
   twitter={{
-    handle: "@AwakeModeApp",
-    site: "@AwakeModeApp",
+    handle: twitterHandle,
+    site: twitterHandle,
     cardType: "summary_large_image",
   }}
 />

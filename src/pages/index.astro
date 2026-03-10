@@ -11,9 +11,18 @@ import Testimonials from "@/components/landing/Testimonials.astro";
 import Pricing from "@/components/landing/Pricing.astro";
 import Cta from "@/components/global/Cta.astro";
 import LogoCloud from "@/components/assets/LogoCloud.astro";
+import { SITE_NAME } from "@/lib/seo";
 ---
 
-<BaseLayout>
+<BaseLayout
+  seo={{
+    title: `${SITE_NAME} | Keep your computer awake`,
+    description:
+      "Browser-first wake control for Mac and Windows with timer sessions, profiles, and cross-page mini controls.",
+    canonical: Astro.url.toString(),
+    type: "website",
+  }}
+>
   <Hero />
   <LogoCloud />
   <Steps />

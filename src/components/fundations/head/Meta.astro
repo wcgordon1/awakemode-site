@@ -1,12 +1,21 @@
-<!-- Meta Tags -->
+---
+import { COMPANY, DEFAULT_DESCRIPTION, SITE_NAME } from "@/lib/seo";
+
+const { seo = {} } = Astro.props;
+const description = seo.description ?? DEFAULT_DESCRIPTION;
+const robots = seo.noindex ? "noindex, nofollow" : "index, follow";
+const author = seo.author ?? SITE_NAME;
+---
+
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AwakeMode | Keep your computer awake</title>
+<meta name="description" content={description} />
 <meta
-  name="description"
-  content="AwakeMode helps you keep your computer awake from the browser with timer-based wake sessions and extension-ready controls."
+  name="keywords"
+  content="awake mode, wake lock, caffeinate alternative, keep mac awake, keep windows awake, chromium keep awake"
 />
-<meta name="keywords" content="awake mode, wake lock, caffeinate alternative, keep mac awake, keep windows awake" />
-<meta name="author" content="AwakeMode" />
+<meta name="author" content={author} />
+<meta name="robots" content={robots} />
+<meta name="contact" content={COMPANY.email} />
 <meta name="theme-color" content="#6f48ff" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />

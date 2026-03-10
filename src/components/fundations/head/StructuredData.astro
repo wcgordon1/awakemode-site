@@ -1,0 +1,12 @@
+---
+const { schemas = [] } = Astro.props;
+const jsonLdBlocks = schemas
+  .filter((schema: unknown) => Boolean(schema))
+  .map((schema: unknown) => JSON.stringify(schema));
+---
+
+{
+  jsonLdBlocks.map((jsonLd: string) => (
+    <script type="application/ld+json" set:html={jsonLd} />
+  ))
+}

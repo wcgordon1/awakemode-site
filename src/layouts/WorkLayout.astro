@@ -5,10 +5,17 @@ import { Image } from "astro:assets";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import Text from "@/components/fundations/elements/Text.astro";
 import Wrapper from "@/components/fundations/containers/Wrapper.astro";
+import { SITE_NAME } from "@/lib/seo";
 const { frontmatter } = Astro.props;
 ---
 
-<BaseLayout>
+<BaseLayout
+  seo={{
+    title: `${frontmatter.client} ${frontmatter.work} | ${SITE_NAME}`,
+    description: frontmatter.description,
+    canonical: Astro.url.toString(),
+  }}
+>
   <section>
     <Wrapper variant="standard" class="pb-12 pt-48">
       <div data-aos="fade-down" data-aos-duration="3000">

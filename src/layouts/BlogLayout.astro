@@ -3,13 +3,43 @@
 import { Image } from "astro:assets";
 // Fundations
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import Button from "@/components/fundations/elements/Button.astro";
 import Text from "@/components/fundations/elements/Text.astro";
 import Wrapper from "@/components/fundations/containers/Wrapper.astro";
-const { frontmatter } = Astro.props;
+import {
+  createBlogPostingSchema,
+  SITE_NAME,
+  toAbsoluteUrl,
+} from "@/lib/seo";
+
+const { frontmatter, slug } = Astro.props;
+const postUrl = toAbsoluteUrl(`/blog/posts/${slug}`);
+const imageUrl =
+  typeof frontmatter.image?.url === "string"
+    ? toAbsoluteUrl(frontmatter.image.url)
+    : toAbsoluteUrl(frontmatter.image?.url?.src ?? "/icon.svg");
+const postSchema = createBlogPostingSchema({
+  title: frontmatter.title,
+  description: frontmatter.description,
+  url: postUrl,
+  imageUrl,
+  datePublished: frontmatter.pubDate,
+  tags: frontmatter.tags,
+});
 ---
 
-<BaseLayout>
+<BaseLayout
+  seo={{
+    title: `${frontmatter.title} | ${SITE_NAME}`,
+    description: frontmatter.description,
+    canonical: Astro.url.toString(),
+    type: "article",
+    image: {
+      url: imageUrl,
+      alt: frontmatter.image.alt,
+    },
+    structuredData: [postSchema],
+  }}
+>
   <section>
     <Wrapper variant="standard" class="pb-12 pt-48">
       <Wrapper variant="narrow" class="text-balance text-center mx-auto">

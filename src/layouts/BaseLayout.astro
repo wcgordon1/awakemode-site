@@ -12,10 +12,24 @@ import AwakeMiniControls from "@/components/awake/AwakeMiniControls.astro";
 // Scripts
 import AosBody from "@/components/fundations/scripts/AosBody.astro";
 import TiltJSBody from "@/components/fundations/scripts/TiltJSBody.astro";
+import {
+  createOrganizationSchema,
+  createSoftwareApplicationSchema,
+  createWebsiteSchema,
+} from "@/lib/seo";
 // Hides nav and footer on selected screens by passing
 // the hideNav and hideFooter props
 // <BaseLayout hideNav={true} hideFooter={true}>
-const { hideNav = false, hideFooter = false } = Astro.props;
+const { hideNav = false, hideFooter = false, seo = {} } = Astro.props;
+const seoWithDefaults = {
+  ...seo,
+  structuredData: [
+    createOrganizationSchema(),
+    createWebsiteSchema(),
+    createSoftwareApplicationSchema(),
+    ...(seo.structuredData ?? []),
+  ],
+};
 ---
 
 <html
@@ -23,7 +37,7 @@ const { hideNav = false, hideFooter = false } = Astro.props;
   class="selection:bg-accent-500 selection:text-white scroll:smooth"
 >
   <head>
-    <BaseHead />
+    <BaseHead seo={seoWithDefaults} />
   </head>
   <body class="flex flex-col bg-base-900 min-h-dvh">
     <HeaderGrid />
